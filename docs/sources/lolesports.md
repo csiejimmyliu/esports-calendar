@@ -103,9 +103,12 @@ were English even under `hl=zh-TW`.
 
 ## Open questions — resolve before Stage 0 is done
 
-1. **Streams.** Core requirement FR-4 depends on them. Either another operation supplies them, or
-   they only populate near broadcast time — which would break the design, since sync runs hourly
-   and days ahead. Must be answered, not assumed.
+1. ~~**Streams.**~~ **Decided, not pending.** Riot supplies no per-match streams and we do not
+   wait for them. Resolution order for FR-4: the user's preferred `(provider, channel)` wins;
+   when that channel is not broadcasting, fall back to the official link from a hand-maintained
+   `League.defaultStreamUrl`. So `capabilities.streamUrls: false` is Riot's final state rather
+   than a placeholder, and adapters do not warn per match about it. BLAST inverts this — it does
+   supply per-match URLs, which is why stream availability is a declared capability at all.
 2. **Is the REST API alive?** One curl. If yes, it likely becomes the primary.
 3. ~~`league.displayPriority.status` as a tier filter.~~ **Disproved.** It is per-request UI state,
    not a league property: CACG returned `hidden`/position 1000 here and `selected`/position 5 from

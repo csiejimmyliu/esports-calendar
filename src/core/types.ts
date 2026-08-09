@@ -107,6 +107,101 @@ export interface Match {
 }
 
 // ---------------------------------------------------------------------------
+// The source layer
+// ---------------------------------------------------------------------------
+
+/**
+ * What an adapter actually returns.
+ *
+ * The entities above are the *resolved* domain model: their `id` fields are our canonical ids,
+ * which only exist once the crosswalk (ExternalRef) has run. An adapter has no database and must
+ * never acquire one (NFR-2), so it cannot know a canonical id. Given only the domain types, an
+ * adapter would have to either invent ids — and reinvent them on the next run, breaking idempotent
+ * ingestion — or read the DB, breaking source isolation.
+ *
+ * So adapters emit `Source*` records keyed by the source's own external id, and the sync layer
+ * (Stage 1) resolves those into the domain model.
+ *
+ * `revision` is deliberately absent here: it is a property of what we have already stored, not of
+ * what a source said, and only the sync layer can compute it.
+ */
+
+export interface SourceTeam {
+  /**
+   * Null when the source cannot identify teams at all. Riot REST `getSchedule` returns team
+   * `name` and `code` but no id anywhere in the document — see docs/sources/lolesports-rest.md.
+   * A source in that state cannot back team subscriptions (FR-1); it declares
+   * `capabilities.teamIdentity: false` so the sync layer knows without inspecting rows.
+   */
+  externalId: ExternalId | null;
+  name: string;
+  /** "GEN", "MOUZ". Collides across leagues (TL, KC, FX all recur) — never a key. */
+  code: string | null;
+  logoUrl: string | null;
+}
+
+/** `team: null` means TBD. Riot's sentinel object and BLAST's plain null both normalize to this. */
+export interface SourceSide {
+  team: SourceTeam | null;
+  score: number | null;
+}
+
+export interface SourceMatch {
+  externalId: ExternalId;
+  game: GameSlug;
+
+  /**
+   * Riot REST `getSchedule` carries `league: {name, slug}` with no id, so league identity has to
+   * come from a second endpoint. When that endpoint is unavailable the match is still returned
+   * with `leagueExternalId: null` and a degradation warning — a partial result beats no result.
+   */
+  leagueExternalId: ExternalId | null;
+  /** The only league handle some endpoints expose. Display and matching, never a crosswalk key. */
+  leagueSlug: string | null;
+  /** Null where the source has no tournament tier in this response (Riot REST `getSchedule`). */
+  tournamentExternalId: ExternalId | null;
+
+  /** ISO 8601, always explicitly UTC. See parseUtcInstant — zone markers are never assumed. */
+  startsAtUtc: string;
+  state: MatchState;
+
+  /** See Match: separate from gamesPlayed on purpose. */
+  seriesLength: number | null;
+  gamesPlayed: number;
+
+  sides: [SourceSide, SourceSide];
+
+  /** Riot's localized blockName, BLAST's stage.name. Display only. */
+  stageLabel: string | null;
+
+  /** Only when the source supplies one. Riot supplies none — see League.defaultStreamUrl. */
+  streamUrl: string | null;
+}
+
+/**
+ * Note the absence of `tier` and `defaultStreamUrl`. No probed source exposes a usable tier
+ * signal (Riot's `priority` is 1 for all 45 leagues) and Riot exposes no streams, so both are
+ * ours to maintain — an adapter must not be able to claim otherwise.
+ */
+export interface SourceLeague {
+  externalId: ExternalId;
+  game: GameSlug;
+  slug: string;
+  name: string;
+  region: string | null;
+  logoUrl: string | null;
+}
+
+export interface SourceTournament {
+  externalId: ExternalId;
+  game: GameSlug;
+  leagueExternalId: ExternalId | null;
+  name: string;
+  startsOn: string | null;
+  endsOn: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Identity
 // ---------------------------------------------------------------------------
 

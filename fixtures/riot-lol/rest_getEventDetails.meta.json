@@ -1,0 +1,18 @@
+{
+  "fixture": "rest_getEventDetails.json",
+  "source": "riot-rest-lol",
+  "request": {
+    "method": "GET",
+    "url": "https://esports-api.lolesports.com/persisted/gw/getEventDetails",
+    "queryParams": { "hl": "<unverified>", "id": "116566854547835328" },
+    "headers": {
+      "x-api-key": "<public static key, see .env.example RIOT_ESPORTS_API_KEY>"
+    }
+  },
+  "capturedOn": "2026-08-09",
+  "contents": "One LPL match (LNG vs IG, Bo3, all games unstarted). The endpoint that proves Riot's canonical team ids: 99566404850008779 matches the suffix of the GraphQL composite id exactly.",
+  "verification": {
+    "id": "verified — present in the response as data.event.id",
+    "hl": "NOT VERIFIED. This response contains no translated field (no blockName, no region), so the locale it was captured under cannot be recovered from its contents. Re-capture with hl=en-US if the locale ever matters here."
+  }
+}

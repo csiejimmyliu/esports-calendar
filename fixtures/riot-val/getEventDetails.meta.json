@@ -1,0 +1,19 @@
+{
+  "fixture": "getEventDetails.json",
+  "source": "riot-rest-val",
+  "request": {
+    "method": "GET",
+    "url": "https://esports-api.service.valorantesports.com/persisted/val/getEventDetails",
+    "queryParams": { "hl": "en-US", "id": "116849606242173103" },
+    "headers": {
+      "x-api-key": "<the same public static key as the LoL path>"
+    }
+  },
+  "capturedOn": "2026-08-09",
+  "contents": "One Game Changers EMEA match. Captures a 2-0 Bo3, which is where game.state \"unneeded\" was confirmed.",
+  "verification": {
+    "id": "verified — present in the response as data.event.id",
+    "hl": "verified from contents — league.name \"Game Changers EMEA\" is English",
+    "tournamentShape": "note that tournament is {id} here and {split, season} in getSchedule — no overlap. Validate per endpoint, never per field name."
+  }
+}

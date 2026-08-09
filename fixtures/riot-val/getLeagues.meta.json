@@ -1,0 +1,18 @@
+{
+  "fixture": "getLeagues.json",
+  "source": "riot-rest-val",
+  "request": {
+    "method": "GET",
+    "url": "https://esports-api.service.valorantesports.com/persisted/val/getLeagues",
+    "queryParams": { "hl": "en-US" },
+    "headers": {
+      "x-api-key": "<the same public static key as the LoL path>"
+    }
+  },
+  "capturedOn": "2026-08-09",
+  "contents": "54 leagues. priority is 1 for all of them, as on the LoL path.",
+  "verification": {
+    "hl": "verified from contents — region values are English (INTERNATIONAL)",
+    "count": "docs/sources/valorant.md says 55 leagues; this file contains 54. Unreconciled, and not chased — the count is not load-bearing for any test."
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "fixture": "schedule.json",
+  "source": "blast-cs",
+  "request": {
+    "method": "GET",
+    "url": "https://api.blast.tv/v2/games/cs/tournaments/{tournamentSlug}/matches",
+    "pathParams": {
+      "tournamentSlug": ["bounty-2026-season-2", "esports-world-cup-2026-cs2"]
+    },
+    "alsoUsed": "GET https://api.blast.tv/v2/games/cs/tournaments/{tournamentSlug}/brackets — state lives only here",
+    "headers": { "origin": "https://blast.tv" }
+  },
+  "capturedOn": "2026-08-09",
+  "contents": "A hand-assembled sample rather than one verbatim response: it merges matches and brackets output for two tournaments, with inline commentary.",
+  "verification": {
+    "slugs": "verified — recorded in the fixture's own inline _meta block",
+    "verbatim": "NO. This file carries an inline _meta object and _comment keys, so it is not a raw upstream response and cannot be replayed as one. Stage 7 should re-capture verbatim per endpoint before writing the adapter — that is what a golden fixture has to be."
+  }
+}

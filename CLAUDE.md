@@ -29,6 +29,12 @@ contradicts it, say so explicitly rather than silently deviating.
   never part of the runtime sync path. Agent output is code, not data.
 - **Golden fixtures.** Every source adapter has a snapshotted real response and a parser test
   against it. No adapter is complete without one.
+- **Every fixture records the request that produced it** in a `<fixture>.meta.json` sidecar: full
+  URL, every query and path parameter, non-secret headers, and the capture date. A fixture whose
+  parameters are unknown cannot be re-captured or compared against live, and a mismatch between
+  it and what the client actually sends is invisible — `rest_getSchedule.json` was captured under
+  `hl=zh-TW` while the client pins `hl=en-US`, and nothing surfaced that until a sidecar was
+  written. State plainly which fields were verified and which were inferred.
 - **Semantic canaries, not liveness checks.** Scrapers fail by returning HTTP 200 with zero rows.
   Health checks must assert content ("LCK has ≥1 match in the next 14 days"), not status codes.
   Confirmed in the wild: BLAST returns 200 + `[]` for an unknown tournament slug, indistinguishable
@@ -74,6 +80,11 @@ TypeScript throughout. Express (JSON API) + React (web). PostgreSQL. Redis. Dock
   calculation — the three places most likely to be subtly wrong.
 - Every ingestion edge case gets a named test: TBD opponents, reschedules, cancellations,
   best-of changes, team renames, a source returning zero rows.
+- **Fixture-backed tests inject a fixed reference clock** — the date the fixture was captured —
+  and never read system time. A fixture's matches are frozen in time, so "the next 7 days" only
+  means anything relative to capture. Without this the same fixture returns nothing a few weeks
+  later, and the test fails for a reason that has nothing to do with the code. Applies to every
+  adapter, not just the first one.
 
 ## Verification
 

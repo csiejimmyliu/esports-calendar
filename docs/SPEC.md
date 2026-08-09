@@ -211,8 +211,8 @@ league            (id, game_id, slug, name, region, image_url, priority)
 tournament        (id, league_id, name, starts_on, ends_on)
 team              (id, game_id, slug, name, code, image_url)
 
-match             (id, tournament_id, league_id, starts_at_utc, best_of, block_name,
-                   state, revision, updated_at)
+match             (id, tournament_id, league_id, starts_at_utc, best_of, games_played,
+                   block_name, state, revision, updated_at)
 match_team        (match_id, team_id NULL, side, score)     -- NULL team_id = TBD
 stream            (match_id, provider, channel, locale, is_official)
 
@@ -238,6 +238,9 @@ Points worth defending in review:
   channel-agnostic from day one rather than retrofitted.
 - **`revision`** drives ICS `SEQUENCE`. Bump only on user-visible change (time, teams, state), or
   every calendar client re-notifies on every sync.
+- **`best_of` and `games_played` are separate columns**, for the reason given in §4. `best_of` is
+  the declared series length; `games_played` is how many were actually played. They coincide on
+  Riot and diverge on BLAST.
 
 ---
 
