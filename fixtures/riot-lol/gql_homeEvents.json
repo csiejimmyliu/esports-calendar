@@ -1,0 +1,589 @@
+{
+  "data": {
+    "__typename": "Query",
+    "esports": {
+      "__typename": "EsportsData",
+      "events": [
+        {
+          "__typename": "EventMatch",
+          "blockName": "第3週",
+          "id": "116696189685662215",
+          "league": {
+            "__typename": "League",
+            "displayPriority": {
+              "__typename": "Priority",
+              "position": 15,
+              "status": "hidden"
+            },
+            "id": "105266094998946936",
+            "image": "http://static.lolesports.com/leagues/1703058345246_IMG_4673.png",
+            "name": "LoL Italian Tournament",
+            "slug": "lit"
+          },
+          "match": {
+            "__typename": "Match",
+            "flags": [
+              "hasVod"
+            ],
+            "games": [
+              {
+                "__typename": "Game",
+                "id": "116696189685662216",
+                "number": 1,
+                "state": "completed",
+                "vods": [
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 5880000,
+                    "id": "117056213333574157",
+                    "parameter": "2839745054",
+                    "startMillis": 1502000
+                  }
+                ],
+                "recaps": []
+              }
+            ],
+            "id": "116696189685662215",
+            "state": "completed",
+            "strategy": {
+              "__typename": "MatchStrategy",
+              "count": 1,
+              "type": "bestOf"
+            },
+            "type": "normal"
+          },
+          "matchTeams": [
+            {
+              "__typename": "MatchTeam",
+              "code": "ATA",
+              "id": "116696189685662215:116315387746515709",
+              "image": "http://static.lolesports.com/teams/1774831963251_ChatGPTImage30mar202602_49_52.png",
+              "lightImage": null,
+              "name": "Aeterna Esports",
+              "result": {
+                "__typename": "TeamResult",
+                "gameWins": 1,
+                "outcome": "win"
+              }
+            },
+            {
+              "__typename": "MatchTeam",
+              "code": "TTS",
+              "id": "116696189685662215:116315380445859853",
+              "image": "http://static.lolesports.com/teams/1774831853783_TTS_w.png",
+              "lightImage": null,
+              "name": "TITANS",
+              "result": {
+                "__typename": "TeamResult",
+                "gameWins": 0,
+                "outcome": "loss"
+              }
+            }
+          ],
+          "startTime": "2026-08-07T16:00:00Z",
+          "state": "completed",
+          "streams": [],
+          "tournament": {
+            "__typename": "Tournament",
+            "id": "116696189684023808",
+            "name": "2026夏季賽"
+          },
+          "type": "match"
+        },
+        {
+          "__typename": "EventMatch",
+          "blockName": "第3週",
+          "id": "115548681803406135",
+          "league": {
+            "__typename": "League",
+            "displayPriority": {
+              "__typename": "Priority",
+              "position": 0,
+              "status": "not_selected"
+            },
+            "id": "98767991302996019",
+            "image": "http://static.lolesports.com/leagues/1592516184297_LEC-01-FullonDark.png",
+            "name": "LEC",
+            "slug": "lec"
+          },
+          "match": {
+            "__typename": "Match",
+            "flags": [
+              "hasVod"
+            ],
+            "games": [
+              {
+                "__typename": "Game",
+                "id": "115548681803406136",
+                "number": 1,
+                "state": "completed",
+                "vods": [
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 12990000,
+                    "id": "117056262860216400",
+                    "parameter": "TEpmhbf28hs",
+                    "startMillis": 10690000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 13995000,
+                    "id": "117056207218861293",
+                    "parameter": "2839702577",
+                    "startMillis": 11695000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 2305000,
+                    "id": "117056178729947917",
+                    "parameter": "pQYvUZ__25c",
+                    "startMillis": 5000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 2450000,
+                    "id": "117060106827622699",
+                    "parameter": "xroUHmJOyTg",
+                    "startMillis": 150000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 16089000,
+                    "id": "117056193566839566",
+                    "parameter": "2839681576",
+                    "startMillis": 13789000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 13901000,
+                    "id": "117056292544186973",
+                    "parameter": "CoDnlWICQjU",
+                    "startMillis": 11601000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 12589000,
+                    "id": "117056201060899008",
+                    "parameter": "m_L0SF2NHyI",
+                    "startMillis": 10289000
+                  }
+                ],
+                "recaps": []
+              },
+              {
+                "__typename": "Game",
+                "id": "115548681803406137",
+                "number": 2,
+                "state": "completed",
+                "vods": [
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 16015000,
+                    "id": "117056262873538010",
+                    "parameter": "TEpmhbf28hs",
+                    "startMillis": 13755000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 17034000,
+                    "id": "117056207207727620",
+                    "parameter": "2839702577",
+                    "startMillis": 14774000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 4570000,
+                    "id": "117056178734432770",
+                    "parameter": "pQYvUZ__25c",
+                    "startMillis": 2310000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 5219000,
+                    "id": "117060106827426090",
+                    "parameter": "xroUHmJOyTg",
+                    "startMillis": 2953000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 19126000,
+                    "id": "117056193567057130",
+                    "parameter": "2839681576",
+                    "startMillis": 16866000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 16936000,
+                    "id": "117056292511670505",
+                    "parameter": "CoDnlWICQjU",
+                    "startMillis": 14676000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 15629000,
+                    "id": "117056201050544319",
+                    "parameter": "m_L0SF2NHyI",
+                    "startMillis": 13369000
+                  }
+                ],
+                "recaps": []
+              },
+              {
+                "__typename": "Game",
+                "id": "115548681803406138",
+                "number": 3,
+                "state": "completed",
+                "vods": [
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 19368000,
+                    "id": "117056262864890386",
+                    "parameter": "TEpmhbf28hs",
+                    "startMillis": 16855000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 20376000,
+                    "id": "117056207218475525",
+                    "parameter": "2839702577",
+                    "startMillis": 17863000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 7095000,
+                    "id": "117056178742024382",
+                    "parameter": "pQYvUZ__25c",
+                    "startMillis": 4582000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 8210000,
+                    "id": "117060106811482964",
+                    "parameter": "xroUHmJOyTg",
+                    "startMillis": 5697000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 22468000,
+                    "id": "117056193568040171",
+                    "parameter": "2839681576",
+                    "startMillis": 19955000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 20279000,
+                    "id": "117056292509096794",
+                    "parameter": "CoDnlWICQjU",
+                    "startMillis": 17766000
+                  },
+                  {
+                    "__typename": "MainVod",
+                    "endMillis": 18968000,
+                    "id": "117056201057821932",
+                    "parameter": "m_L0SF2NHyI",
+                    "startMillis": 16455000
+                  }
+                ],
+                "recaps": []
+              }
+            ],
+            "id": "115548681803406135",
+            "state": "completed",
+            "strategy": {
+              "__typename": "MatchStrategy",
+              "count": 3,
+              "type": "bestOf"
+            },
+            "type": "normal"
+          },
+          "matchTeams": [
+            {
+              "__typename": "MatchTeam",
+              "code": "TH",
+              "id": "115548681803406135:109637393694097670",
+              "image": "http://static.lolesports.com/teams/1672933861879_Heretics-Full-Color.png",
+              "lightImage": null,
+              "name": "Team Heretics",
+              "result": {
+                "__typename": "TeamResult",
+                "gameWins": 2,
+                "outcome": "win"
+              }
+            },
+            {
+              "__typename": "MatchTeam",
+              "code": "FNC",
+              "id": "115548681803406135:98767991866488695",
+              "image": "http://static.lolesports.com/teams/1631819669150_fnc-2021-worlds.png",
+              "lightImage": "http://static.lolesports.com/teams/1592591295312_FnaticFNC-02-SingleonDark.png",
+              "name": "Fnatic",
+              "result": {
+                "__typename": "TeamResult",
+                "gameWins": 1,
+                "outcome": "loss"
+              }
+            }
+          ],
+          "startTime": "2026-08-07T17:15:00Z",
+          "state": "completed",
+          "streams": [],
+          "tournament": {
+            "__typename": "Tournament",
+            "id": "115548681802226458",
+            "name": "2026夏季賽"
+          },
+          "type": "match"
+        },
+        {
+          "__typename": "EventMatch",
+          "blockName": "季後賽",
+          "id": "117047583684384478",
+          "league": {
+            "__typename": "League",
+            "displayPriority": {
+              "__typename": "Priority",
+              "position": 1000,
+              "status": "hidden"
+            },
+            "id": "117047308800576646",
+            "image": "http://static.lolesports.com/leagues/1786093799714_LOGOSantoDomingo26-021.png",
+            "name": "CACG",
+            "slug": "cacg"
+          },
+          "match": {
+            "__typename": "Match",
+            "flags": [],
+            "games": [
+              {
+                "__typename": "Game",
+                "id": "117047583684384479",
+                "number": 1,
+                "state": "unstarted",
+                "vods": [],
+                "recaps": []
+              }
+            ],
+            "id": "117047583684384478",
+            "state": "unstarted",
+            "strategy": {
+              "__typename": "MatchStrategy",
+              "count": 1,
+              "type": "bestOf"
+            },
+            "type": "normal"
+          },
+          "matchTeams": [
+            {
+              "__typename": "MatchTeam",
+              "code": "TBD",
+              "id": "117047583684384478:0",
+              "image": "https://static.lolesports.com/teams/team-tbd.png",
+              "lightImage": "https://static.lolesports.com/teams/team-tbd-light.png",
+              "name": "TBD",
+              "result": null
+            },
+            {
+              "__typename": "MatchTeam",
+              "code": "TBD",
+              "id": "117047583684384478:0",
+              "image": "https://static.lolesports.com/teams/team-tbd.png",
+              "lightImage": "https://static.lolesports.com/teams/team-tbd-light.png",
+              "name": "TBD",
+              "result": null
+            }
+          ],
+          "startTime": "2026-08-07T20:05:00Z",
+          "state": "completed",
+          "streams": [],
+          "tournament": {
+            "__typename": "Tournament",
+            "id": "117047527269777218",
+            "name": "2026"
+          },
+          "type": "match"
+        },
+        {
+          "__typename": "EventMatch",
+          "blockName": "季後賽",
+          "id": "117047583684384474",
+          "league": {
+            "__typename": "League",
+            "displayPriority": {
+              "__typename": "Priority",
+              "position": 1000,
+              "status": "hidden"
+            },
+            "id": "117047308800576646",
+            "image": "http://static.lolesports.com/leagues/1786093799714_LOGOSantoDomingo26-021.png",
+            "name": "CACG",
+            "slug": "cacg"
+          },
+          "match": {
+            "__typename": "Match",
+            "flags": [],
+            "games": [
+              {
+                "__typename": "Game",
+                "id": "117047583684384475",
+                "number": 1,
+                "state": "unstarted",
+                "vods": [],
+                "recaps": []
+              },
+              {
+                "__typename": "Game",
+                "id": "117047583684384476",
+                "number": 2,
+                "state": "unstarted",
+                "vods": [],
+                "recaps": []
+              },
+              {
+                "__typename": "Game",
+                "id": "117047583684384477",
+                "number": 3,
+                "state": "unstarted",
+                "vods": [],
+                "recaps": []
+              }
+            ],
+            "id": "117047583684384474",
+            "state": "unstarted",
+            "strategy": {
+              "__typename": "MatchStrategy",
+              "count": 3,
+              "type": "bestOf"
+            },
+            "type": "normal"
+          },
+          "matchTeams": [
+            {
+              "__typename": "MatchTeam",
+              "code": "TBD",
+              "id": "117047583684384474:0",
+              "image": "https://static.lolesports.com/teams/team-tbd.png",
+              "lightImage": "https://static.lolesports.com/teams/team-tbd-light.png",
+              "name": "TBD",
+              "result": null
+            },
+            {
+              "__typename": "MatchTeam",
+              "code": "TBD",
+              "id": "117047583684384474:0",
+              "image": "https://static.lolesports.com/teams/team-tbd.png",
+              "lightImage": "https://static.lolesports.com/teams/team-tbd-light.png",
+              "name": "TBD",
+              "result": null
+            }
+          ],
+          "startTime": "2026-08-07T20:55:00Z",
+          "state": "completed",
+          "streams": [],
+          "tournament": {
+            "__typename": "Tournament",
+            "id": "117047527269777218",
+            "name": "2026"
+          },
+          "type": "match"
+        },
+        {
+          "__typename": "EventMatch",
+          "blockName": "第3週",
+          "id": "116566854547835328",
+          "league": {
+            "__typename": "League",
+            "displayPriority": {
+              "__typename": "Priority",
+              "position": 0,
+              "status": "selected"
+            },
+            "id": "98767991314006698",
+            "image": "http://static.lolesports.com/leagues/1592516115322_LPL-01-FullonDark.png",
+            "name": "LPL",
+            "slug": "lpl"
+          },
+          "match": {
+            "__typename": "Match",
+            "flags": [],
+            "games": [
+              {
+                "__typename": "Game",
+                "id": "116566854547835329",
+                "number": 1,
+                "state": "unstarted",
+                "vods": [],
+                "recaps": []
+              },
+              {
+                "__typename": "Game",
+                "id": "116566854547835330",
+                "number": 2,
+                "state": "unstarted",
+                "vods": [],
+                "recaps": []
+              },
+              {
+                "__typename": "Game",
+                "id": "116566854547835331",
+                "number": 3,
+                "state": "unstarted",
+                "vods": [],
+                "recaps": []
+              }
+            ],
+            "id": "116566854547835328",
+            "state": "unstarted",
+            "strategy": {
+              "__typename": "MatchStrategy",
+              "count": 3,
+              "type": "bestOf"
+            },
+            "type": "normal"
+          },
+          "matchTeams": [
+            {
+              "__typename": "MatchTeam",
+              "code": "LNG",
+              "id": "116566854547835328:99566404850008779",
+              "image": "http://static.lolesports.com/teams/1717487697003_LNGlogo.png",
+              "lightImage": null,
+              "name": "Suzhou LNG Esports",
+              "result": {
+                "__typename": "TeamResult",
+                "gameWins": 0,
+                "outcome": null
+              }
+            },
+            {
+              "__typename": "MatchTeam",
+              "code": "IG",
+              "id": "116566854547835328:99566404848691211",
+              "image": "http://static.lolesports.com/teams/1634762917340_300px-Invictus_Gaming_logo.png",
+              "lightImage": "http://static.lolesports.com/teams/1634762917340_300px-Invictus_Gaming_logo.png",
+              "name": "Invictus Gaming",
+              "result": {
+                "__typename": "TeamResult",
+                "gameWins": 0,
+                "outcome": null
+              }
+            }
+          ],
+          "startTime": "2026-08-09T07:00:00Z",
+          "state": "unstarted",
+          "streams": [],
+          "tournament": {
+            "__typename": "Tournament",
+            "id": "115616254668930796",
+            "name": "2026第3季賽"
+          },
+          "type": "match"
+        }
+      ],
+      "pages": {
+        "__typename": "Pages",
+        "newer": null,
+        "older": null
+      }
+    }
+  }
+}
