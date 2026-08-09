@@ -30,10 +30,25 @@ and merge in whatever it finds worth keeping.
 4. **Read the plan properly.** Highest-leverage minute you will spend — most bad outcomes are
    visible here and nearly free to fix.
 5. Approve or correct. If you correct a wrong assumption, decide whether it belongs in CLAUDE.md.
-6. Let it implement.
+6. Let it implement — **on its own branch, `stage-<n>-<short-name>`.**
 7. Ask for verification *output*, not a verification *claim*.
 8. Fresh-context review: `Use a subagent to review the Stage 2 diff against docs/SPEC.md §2 and report gaps only.`
-9. Commit.
+9. The agent commits to the stage branch. **You merge. The agent never touches `main`.**
+
+### Why the branch
+
+A stage is the unit of work, so it should also be the unit of undo. On a shared `main` a stage
+that turns out to be wrong has to be picked apart commit by commit; on its own branch it is one
+`git branch -D` and the history is clean.
+
+It also puts a human decision between "the agent says it verified this" and "this is now the
+project". That gap is where step 7 actually gets enforced.
+
+```bash
+git checkout -b stage-3-web-calendar     # before implementing
+# ... verify ...
+git checkout main && git merge --ff-only stage-3-web-calendar   # you, not the agent
+```
 
 ---
 

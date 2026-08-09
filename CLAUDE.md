@@ -61,6 +61,25 @@ badges. Match statistics, picks/bans, VODs, standings, brackets. Tier 2/3 or non
 
 These are deliberate exclusions. If a task seems to need one, ask rather than assume.
 
+## How source notes are written
+
+**Every speculative claim states where its confidence comes from.** "Inferred from a 5-row
+cross-check" and "verified exhaustively against all 80 events, zero exceptions" are different
+claims and must not be written in the same voice. Label the basis: sampled, cross-checked,
+exhaustive-over-one-capture, or assumed. State the sample size.
+
+This is not documentation hygiene, it is a bug class. `lolesports-rest.md` described inferring
+match state from `result == null` as a "partial workaround… inference, not data". That wording
+was written from a five-id cross-check. Checking all 80 events showed the signal is exact — 7 of
+7 unplayed matches have a null result, 0 of 73 played ones do. The adapter had already been
+written to merely *warn* about the bad state field instead of correcting it, because the note's
+hedging made correction sound unfounded. **The prose talked the implementation out of the right
+answer.**
+
+Corollary: when a claim is upgraded from sampled to verified, encode the evidence as a test, not
+only as a paragraph. An exhaustive check is exhaustive over one capture, and the next capture is
+not bound by it.
+
 ## Read before designing anything
 
 `docs/sources/lolesports.md`, `lolesports-rest.md`, `valorant.md`, `cs2-blast.md`. Three real

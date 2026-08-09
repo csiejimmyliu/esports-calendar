@@ -1,0 +1,19 @@
+{
+  "fixture": "esports-world-cup-2026-cs2_matches.json",
+  "source": "blast-cs",
+  "request": {
+    "method": "GET",
+    "url": "https://api.blast.tv/v2/games/cs/tournaments/esports-world-cup-2026-cs2/matches",
+    "pathParams": { "tournamentSlug": "esports-world-cup-2026-cs2" },
+    "queryParams": {},
+    "headers": { "origin": "https://blast.tv" }
+  },
+  "capturedOn": "2026-08-09",
+  "contents": "HTTP 200 and `[]`. Two bytes, verbatim and untrimmed — the emptiness is the fixture.",
+  "verification": {
+    "verbatim": "yes, complete response",
+    "http": "200, 2 bytes",
+    "slugIsValid": "verified — the same slug returns a full 27835-byte bracket from /brackets in the same minute, so this is not the unknown-slug case docs/sources/cs2-blast.md describes"
+  },
+  "whyThisMatters": "The tournament starts 2026-08-12, three days after capture, and its entire schedule exists — in /brackets only. So an empty /matches does not mean a bad slug and does not mean nothing is scheduled; for an upcoming tournament it appears to be the normal response. A forward-looking calendar cannot be built from /matches at all. See docs/sources/cs2-blast.md."
+}

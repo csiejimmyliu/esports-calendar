@@ -1,0 +1,190 @@
+[
+  {
+    "tournamentUuid": "414d62c0-b906-4c3e-9bb8-d6c0338e5094",
+    "tournamentName": "Playins",
+    "parentTournamentName": "BLAST Premier Bounty S2 2026",
+    "parentTournamentFormat": "",
+    "circuitName": "CS 2026",
+    "startDate": "2026-07-21T12:00:00.000Z",
+    "endDate": "2026-07-26T21:00:00.000Z",
+    "index": 0,
+    "label": "Playins",
+    "format": "single-elim-32-bounty",
+    "numberOfTeams": null,
+    "metadata": null,
+    "matches": [
+      {
+        "uuid": "17aec509-8610-4680-bdda-71dc280fc364",
+        "type": "BO3",
+        "index": 0,
+        "name": "Round of 32 - Match 1",
+        "timeOfSeries": "2026-07-21T10:00:00.000Z",
+        "teamA": {
+          "uuid": "7c6216dd-d2c5-42e0-a475-8d18d3a7b02f",
+          "name": "M80",
+          "shorthand": "m80",
+          "location": "US",
+          "isEliminated": true
+        },
+        "teamB": {
+          "uuid": "6b4aa065-73bf-4c9f-9fb6-417af33efdc0",
+          "name": "Ninjas in Pyjamas",
+          "shorthand": "nip",
+          "location": "SE",
+          "isEliminated": false
+        },
+        "teamAScore": 0,
+        "teamBScore": 2,
+        "maps": [
+          {
+            "uuid": "607a73a2-8064-4156-b8dd-c23eaf0797d9",
+            "scheduledStartTime": "2026-07-21T09:23:12.004Z",
+            "actualStartTime": "2026-07-21T10:08:12.007Z",
+            "name": "de_inferno",
+            "matchEndedTime": "2026-07-21T11:02:01.199Z",
+            "teamAScore": 10,
+            "teamBScore": 13,
+            "externalId": null
+          },
+          {
+            "uuid": "12f9cd2a-49c4-4249-a3b4-2f6d9987bff2",
+            "scheduledStartTime": "2026-07-21T11:07:10.005Z",
+            "actualStartTime": "2026-07-21T11:17:12.244Z",
+            "name": "de_ancient",
+            "matchEndedTime": "2026-07-21T11:59:54.155Z",
+            "teamAScore": 8,
+            "teamBScore": 13,
+            "externalId": null
+          }
+        ],
+        "metadata": {
+          "_t": "cs_match",
+          "externalStreamUrl": "https://www.youtube.com/watch?v=h_EPjVea2yI"
+        },
+        "externalId": null,
+        "winnerGoesTo": null,
+        "loserGoesTo": null,
+        "isLive": false,
+        "isCompleted": true
+      },
+      {
+        "uuid": "9d9bb28f-b55a-4bf9-b2ca-63d6aed5f77a",
+        "type": "BO3",
+        "index": 1,
+        "name": "Round of 32 - Match 2",
+        "timeOfSeries": "2026-07-21T12:30:00.000Z",
+        "teamA": {
+          "uuid": "96ab860e-3780-4282-b7da-5d49ffc2b355",
+          "name": "Team Nemesis",
+          "shorthand": "nemesis",
+          "location": "SG",
+          "isEliminated": true
+        },
+        "teamB": {
+          "uuid": "f12ac737-f08d-4eb5-ac72-1f782043f840",
+          "name": "Astralis",
+          "shorthand": "astralis",
+          "location": "DK",
+          "isEliminated": false
+        },
+        "teamAScore": 1,
+        "teamBScore": 2,
+        "maps": [
+          {
+            "uuid": "23635122-508a-4e7c-b43f-8321a63a91c0",
+            "scheduledStartTime": "2026-07-21T11:23:58.005Z",
+            "actualStartTime": "2026-07-21T12:14:21.923Z",
+            "name": "de_nuke",
+            "matchEndedTime": "2026-07-21T13:10:57.383Z",
+            "teamAScore": 13,
+            "teamBScore": 11,
+            "externalId": null
+          },
+          {
+            "uuid": "2321cfad-c584-4609-a148-51bf2466e0c2",
+            "scheduledStartTime": "2026-07-21T13:15:54.005Z",
+            "actualStartTime": "2026-07-21T13:26:51.741Z",
+            "name": "de_ancient",
+            "matchEndedTime": "2026-07-21T14:18:15.774Z",
+            "teamAScore": 10,
+            "teamBScore": 13,
+            "externalId": null
+          },
+          {
+            "uuid": "e04f1126-b71f-45a6-9eed-e523ab2f0eca",
+            "scheduledStartTime": "2026-07-21T14:24:59.004Z",
+            "actualStartTime": "2026-07-21T14:33:07.095Z",
+            "name": "de_cache",
+            "matchEndedTime": "2026-07-21T15:18:36.646Z",
+            "teamAScore": 7,
+            "teamBScore": 13,
+            "externalId": null
+          }
+        ],
+        "metadata": {
+          "_t": "cs_match",
+          "externalStreamUrl": "https://www.youtube.com/watch?v=h_EPjVea2yI"
+        },
+        "externalId": null,
+        "winnerGoesTo": null,
+        "loserGoesTo": null,
+        "isLive": false,
+        "isCompleted": true
+      },
+      {
+        "uuid": "ce68897e-f9a5-408b-8c4e-d7aa0a9b8898",
+        "type": "BO3",
+        "index": 2,
+        "name": "Round of 32 - Match 3",
+        "timeOfSeries": "2026-07-21T15:00:00.000Z",
+        "teamA": {
+          "uuid": "774723c2-f35b-45a3-a07f-934ac6c4e56a",
+          "name": "Nuclear TigeRES",
+          "shorthand": "nucleartigeres",
+          "location": "RU",
+          "isEliminated": true
+        },
+        "teamB": {
+          "uuid": "05b375da-847d-48e8-8bc0-d3f957e35e25",
+          "name": "MOUZ",
+          "shorthand": "mouz",
+          "location": "EU",
+          "isEliminated": false
+        },
+        "teamAScore": 0,
+        "teamBScore": 2,
+        "maps": [
+          {
+            "uuid": "7f97eb0d-2f04-45c5-b5db-b7f72e82c371",
+            "scheduledStartTime": "2026-07-21T13:35:49.004Z",
+            "actualStartTime": "2026-07-21T15:51:11.779Z",
+            "name": "de_ancient",
+            "matchEndedTime": "2026-07-21T16:30:13.234Z",
+            "teamAScore": 6,
+            "teamBScore": 13,
+            "externalId": null
+          },
+          {
+            "uuid": "72bd0fc3-cc46-4cbf-93eb-60c6af157625",
+            "scheduledStartTime": "2026-07-21T16:35:00.004Z",
+            "actualStartTime": "2026-07-21T16:47:01.675Z",
+            "name": "de_nuke",
+            "matchEndedTime": "2026-07-21T17:42:03.479Z",
+            "teamAScore": 10,
+            "teamBScore": 13,
+            "externalId": null
+          }
+        ],
+        "metadata": {
+          "_t": "cs_match",
+          "externalStreamUrl": "https://www.youtube.com/watch?v=h_EPjVea2yI"
+        },
+        "externalId": null,
+        "winnerGoesTo": null,
+        "loserGoesTo": null,
+        "isLive": false,
+        "isCompleted": true
+      }
+    ]
+  }
+]

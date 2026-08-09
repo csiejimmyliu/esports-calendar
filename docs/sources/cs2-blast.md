@@ -1,6 +1,16 @@
 # Source: BLAST (Counter-Strike 2)
 
-Probed 2026-08-09. Fixture: `fixtures/blast-cs/schedule.json`.
+Probed 2026-08-09. Fixtures: `fixtures/blast-cs/{bounty-2026-season-2,esports-world-cup-2026-cs2}_{matches,brackets}.json`,
+each with a `.meta.json` sidecar. The original probe write-up, which was a hand-assembled merge of
+two tournaments and two endpoints rather than a replayable response, is kept as
+`docs/sources/blast-probe-notes-2026-08-09.json`.
+
+> **Unreviewed finding, 2026-08-09 re-capture.** `esports-world-cup-2026-cs2` starts 2026-08-12
+> and its full schedule exists — in `/brackets`. Its `/matches` returns HTTP 200 and `[]` in the
+> same minute. If that generalises, an upcoming tournament has no rows in `/matches` at all, and
+> the "join the two endpoints for state" model below understates the problem: `/brackets` is not
+> an enrichment, it is the only forward-looking source. Not yet folded into the sections below —
+> see the sidecar on `esports-world-cup-2026-cs2_matches.json`.
 
 This is the source that actually tests the abstraction. Everything below diverges from Riot in a
 way that constrains the interface.

@@ -69,9 +69,52 @@ Cross-checked against the GraphQL sample for the same five match ids:
 
 The two divergent rows are playoff matches with `teams[].code == "TBD"`, `result: null`, and no
 VOD flag — they have plainly not been played. REST has only one `state` field, so the true value
-is unrecoverable. A calendar built on REST would show unplayed playoff matches as finished.
+is unrecoverable from `state` alone. A calendar built on `state` would show unplayed playoff
+matches as finished.
 
-Partial workaround: infer from `result == null` and `flags` lacking `hasVod`. Inference, not data.
+### The full picture — verified against all 80 events, 2026-08-09
+
+*Confidence: exhaustive. Every event in `rest_getSchedule.json` was classified, not sampled.*
+
+The five-id cross-check above found two bad rows. There are **three**:
+
+| match id | league | starts | REST `state` | actually |
+|---|---|---|---|---|
+| 117047583684384478 | cacg | 2026-08-07T20:05Z | `completed` | not played |
+| 117047583684384474 | cacg | 2026-08-07T20:55Z | `completed` | not played |
+| **116929376557102192** | **kespa_cup** | **2026-08-10T10:30Z** | **`completed`** | **not played** |
+
+The third one **starts the day after this fixture was captured**. So "state is only wrong for
+stale placeholders in the past" is not a safe rule — a future match can be reported as finished.
+
+Worse, `state` has no rule at all for undecided matches. Two `kespa_cup` TBD matches one day
+apart disagree with each other: one `completed`, one `unstarted`. Distribution across all 80:
+
+```
+TBD, result null, state completed   3
+TBD, result null, state unstarted   4
+real teams, result null             0
+one side null, other not            0
+```
+
+### `result === null` is exact, not a workaround
+
+Seven matches have `result: null`, and all seven are unplayed. None of the 73 played matches has
+a null result, and no match is null on one side only. The correspondence has **zero exceptions**
+in the captured sample.
+
+So the adapter **overrides** `state` rather than flagging it: a null result on either side means
+`unstarted`, whatever `state` says. `flags` and `hasVod` are not needed — `result` alone settles
+it. Because the reported state is derived, `riot-rest-lol` declares `capabilities.explicitState:
+false` even though the field exists.
+
+Note that `{gameWins: 0, outcome: null}` is a **present** result belonging to a real team that
+has not won a game. Only an absent `result` means unplayed; conflating the two would erase every
+upcoming match.
+
+*Caveat: exhaustive over one capture, not over time. If a future capture shows a played match
+with a null result, this rule is wrong and the correction becomes a silent data loss — so the
+7/73/0 distribution is asserted as a test, not left as a comment.*
 
 ### 3. No stream links
 Absent from `getSchedule` entirely. Unresolved whether `getEventDetails` or `getLive` supply them.

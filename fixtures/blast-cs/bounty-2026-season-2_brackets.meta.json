@@ -1,0 +1,18 @@
+{
+  "fixture": "bounty-2026-season-2_brackets.json",
+  "source": "blast-cs",
+  "request": {
+    "method": "GET",
+    "url": "https://api.blast.tv/v2/games/cs/tournaments/bounty-2026-season-2/brackets",
+    "pathParams": { "tournamentSlug": "bounty-2026-season-2" },
+    "queryParams": {},
+    "headers": { "origin": "https://blast.tv" }
+  },
+  "capturedOn": "2026-08-09",
+  "contents": "The same tournament as its /matches sibling, in the other vocabulary: uuid not id, timeOfSeries not scheduledAt, shorthand not shortName. Carries isLive and isCompleted, which /matches lacks entirely.",
+  "verification": {
+    "verbatim": "elements are verbatim; truncated from 2 stages to 1 and from 24 matches to 3",
+    "http": "200, 40427 bytes at capture"
+  },
+  "pairedWith": "bounty-2026-season-2_matches.json — the two are the same matches and must be diffable, which is why both were captured in the same minute."
+}

@@ -1,0 +1,392 @@
+[
+  {
+    "id": "3d4562d6-b58a-418c-bd84-5eabb967dc79",
+    "name": "Final",
+    "scheduledAt": "2026-08-02T10:30:00.000Z",
+    "type": "BO5",
+    "index": 6,
+    "externalId": null,
+    "circuit": {
+      "gameId": "cs",
+      "id": "cs-2026",
+      "name": "CS 2026"
+    },
+    "tournament": {
+      "id": "bounty-2026-season-2",
+      "name": "BLAST Premier Bounty S2 2026",
+      "startDate": "2026-07-21T12:00:00",
+      "endDate": "2026-08-02T19:58:00",
+      "prizePool": "$1,150,000",
+      "externalId": null,
+      "location": "BLAST Studio, Malta"
+    },
+    "stage": {
+      "id": "c4144b87-3fac-4901-bf0b-560d9fc344c0",
+      "name": "Final 8",
+      "format": "single-elim-8-bounty",
+      "numberOfTeams": null,
+      "metadata": null,
+      "startDate": "2026-07-30T12:00:00",
+      "endDate": "2026-08-02T21:00:00",
+      "index": 1
+    },
+    "teamA": {
+      "id": "05b375da-847d-48e8-8bc0-d3f957e35e25",
+      "name": "MOUZ",
+      "shortName": "mouz",
+      "nationality": "EU",
+      "externalId": "106",
+      "metadata": {
+        "references": {
+          "liquipedia": {
+            "teamName": "MOUZ",
+            "pageId": 19674
+          }
+        }
+      }
+    },
+    "teamB": {
+      "id": "80b609cb-707b-48f2-83ee-0f68b8ba8cca",
+      "name": "Spirit",
+      "shortName": "spirit",
+      "nationality": "RU",
+      "externalId": "81",
+      "metadata": {
+        "references": {
+          "liquipedia": {
+            "teamName": "Team Spirit",
+            "pageId": 78203
+          }
+        }
+      }
+    },
+    "teamAScore": 3,
+    "teamBScore": 1,
+    "maps": [
+      {
+        "id": "cb4f6d55-4862-4e47-a213-65db277762fd",
+        "name": "de_dust2",
+        "scheduledAt": "2026-08-02T09:30:25.006Z",
+        "startedAt": "2026-08-02T10:30:24.156Z",
+        "endedAt": "2026-08-02T11:20:37.640Z",
+        "externalId": null,
+        "teamAScore": 13,
+        "teamBScore": 8
+      },
+      {
+        "id": "0561dba5-f8ad-47f7-ac6e-d9984565cc64",
+        "name": "de_mirage",
+        "scheduledAt": "2026-08-02T11:24:30.003Z",
+        "startedAt": "2026-08-02T11:38:28.971Z",
+        "endedAt": "2026-08-02T12:17:43.005Z",
+        "externalId": null,
+        "teamAScore": 13,
+        "teamBScore": 4
+      },
+      {
+        "id": "6e49d0ac-6e90-4dee-bc42-c07e513a9871",
+        "name": "de_ancient",
+        "scheduledAt": "2026-08-02T12:19:30.005Z",
+        "startedAt": "2026-08-02T12:32:49.074Z",
+        "endedAt": "2026-08-02T13:20:12.122Z",
+        "externalId": null,
+        "teamAScore": 9,
+        "teamBScore": 13
+      },
+      {
+        "id": "9f56ae1b-d72e-4e46-b79f-bfa2ba5b0d3f",
+        "name": "de_nuke",
+        "scheduledAt": "2026-08-02T13:21:15.003Z",
+        "startedAt": "2026-08-02T13:45:29.254Z",
+        "endedAt": "2026-08-02T14:40:51.585Z",
+        "externalId": null,
+        "teamAScore": 13,
+        "teamBScore": 10
+      }
+    ],
+    "metadata": {
+      "_t": "cs_match",
+      "externalStreamUrl": "https://www.twitch.tv/blastpremier"
+    }
+  },
+  {
+    "id": "bb259034-d4c3-4029-a6ab-1688bae342c5",
+    "name": "Round of 16 - Match 6",
+    "scheduledAt": "2026-07-26T12:30:00.000Z",
+    "type": "BO3",
+    "index": 21,
+    "externalId": null,
+    "circuit": {
+      "gameId": "cs",
+      "id": "cs-2026",
+      "name": "CS 2026"
+    },
+    "tournament": {
+      "id": "bounty-2026-season-2",
+      "name": "BLAST Premier Bounty S2 2026",
+      "startDate": "2026-07-21T12:00:00",
+      "endDate": "2026-08-02T19:58:00",
+      "prizePool": "$1,150,000",
+      "externalId": null,
+      "location": "BLAST Studio, Malta"
+    },
+    "stage": {
+      "id": "414d62c0-b906-4c3e-9bb8-d6c0338e5094",
+      "name": "Playins",
+      "format": "single-elim-32-bounty",
+      "numberOfTeams": null,
+      "metadata": null,
+      "startDate": "2026-07-21T12:00:00",
+      "endDate": "2026-07-26T21:00:00",
+      "index": 0
+    },
+    "teamA": {
+      "id": "f40de295-26ff-4972-96ce-428593316c01",
+      "name": "3DMAX",
+      "shortName": "3dmax",
+      "nationality": "FR",
+      "externalId": "28",
+      "metadata": {
+        "references": {
+          "liquipedia": {
+            "teamName": "3DMAX",
+            "pageId": 19578
+          }
+        }
+      }
+    },
+    "teamB": {
+      "id": "e6478fa6-eb88-4e7b-bc8d-7f8613ce4e5d",
+      "name": "FUT Esports",
+      "shortName": "fut",
+      "nationality": "EU",
+      "externalId": "145",
+      "metadata": {
+        "references": {
+          "liquipedia": {
+            "teamName": "FUT Esports",
+            "pageId": 371786
+          }
+        }
+      }
+    },
+    "teamAScore": 2,
+    "teamBScore": 0,
+    "maps": [
+      {
+        "id": "39cad340-6e24-4023-8a90-eb5e0a6b4d1d",
+        "name": "de_dust2",
+        "scheduledAt": "2026-07-26T10:59:03.004Z",
+        "startedAt": "2026-07-26T12:10:37.800Z",
+        "endedAt": "2026-07-26T13:05:29.521Z",
+        "externalId": null,
+        "teamAScore": 13,
+        "teamBScore": 11
+      },
+      {
+        "id": "54acd1d2-5bbb-40f7-b131-6d68e69ac5d6",
+        "name": "de_ancient",
+        "scheduledAt": "2026-07-26T13:10:17.004Z",
+        "startedAt": "2026-07-26T13:20:12.493Z",
+        "endedAt": "2026-07-26T14:02:30.404Z",
+        "externalId": null,
+        "teamAScore": 13,
+        "teamBScore": 9
+      }
+    ],
+    "metadata": {
+      "_t": "cs_match",
+      "externalStreamUrl": "https://www.youtube.com/watch?v=p5lkkfwOeEI"
+    }
+  },
+  {
+    "id": "6797a544-4204-4443-8434-05ac997b8be9",
+    "name": "Quarter Final 3",
+    "scheduledAt": "2026-07-31T12:30:00.000Z",
+    "type": "BO3",
+    "index": 2,
+    "externalId": null,
+    "circuit": {
+      "gameId": "cs",
+      "id": "cs-2026",
+      "name": "CS 2026"
+    },
+    "tournament": {
+      "id": "bounty-2026-season-2",
+      "name": "BLAST Premier Bounty S2 2026",
+      "startDate": "2026-07-21T12:00:00",
+      "endDate": "2026-08-02T19:58:00",
+      "prizePool": "$1,150,000",
+      "externalId": null,
+      "location": "BLAST Studio, Malta"
+    },
+    "stage": {
+      "id": "c4144b87-3fac-4901-bf0b-560d9fc344c0",
+      "name": "Final 8",
+      "format": "single-elim-8-bounty",
+      "numberOfTeams": null,
+      "metadata": null,
+      "startDate": "2026-07-30T12:00:00",
+      "endDate": "2026-08-02T21:00:00",
+      "index": 1
+    },
+    "teamA": {
+      "id": "e810f8c5-4778-4621-a6e1-0c26823674e7",
+      "name": "FaZe",
+      "shortName": "faze",
+      "nationality": "EU",
+      "externalId": "61",
+      "metadata": {
+        "references": {
+          "liquipedia": {
+            "teamName": "FaZe Clan",
+            "pageId": 58258
+          }
+        }
+      }
+    },
+    "teamB": {
+      "id": "c2f3ca41-2926-4d56-970a-a081b6ea1009",
+      "name": "The MongolZ",
+      "shortName": "mongolz",
+      "nationality": "MN",
+      "externalId": "122",
+      "metadata": {
+        "references": {
+          "liquipedia": {
+            "teamName": "The MongolZ",
+            "pageId": 56270
+          }
+        }
+      }
+    },
+    "teamAScore": 2,
+    "teamBScore": 1,
+    "maps": [
+      {
+        "id": "ffa74c38-ad27-496d-8cd1-de2f3cd98205",
+        "name": "de_nuke",
+        "scheduledAt": "2026-07-31T11:21:45.007Z",
+        "startedAt": "2026-07-31T12:30:23.667Z",
+        "endedAt": "2026-07-31T13:25:14.275Z",
+        "externalId": null,
+        "teamAScore": 16,
+        "teamBScore": 12
+      },
+      {
+        "id": "0f559353-9647-4130-b898-b8e9fe32a943",
+        "name": "de_mirage",
+        "scheduledAt": "2026-07-31T13:31:10.004Z",
+        "startedAt": "2026-07-31T13:43:38.938Z",
+        "endedAt": "2026-07-31T14:28:24.786Z",
+        "externalId": null,
+        "teamAScore": 7,
+        "teamBScore": 13
+      },
+      {
+        "id": "62e46fc4-e44e-4cb7-8841-604d4248d7c3",
+        "name": "de_ancient",
+        "scheduledAt": "2026-07-31T14:29:24.004Z",
+        "startedAt": "2026-07-31T14:43:49.004Z",
+        "endedAt": "2026-07-31T15:25:26.676Z",
+        "externalId": null,
+        "teamAScore": 13,
+        "teamBScore": 8
+      }
+    ],
+    "metadata": {
+      "_t": "cs_match",
+      "externalStreamUrl": "https://www.twitch.tv/blastpremier"
+    }
+  },
+  {
+    "id": "66510b51-44d0-4fba-948b-3055cd6a10e8",
+    "name": "Quarter Final 1",
+    "scheduledAt": "2026-07-30T13:00:00.000Z",
+    "type": "BO3",
+    "index": 0,
+    "externalId": null,
+    "circuit": {
+      "gameId": "cs",
+      "id": "cs-2026",
+      "name": "CS 2026"
+    },
+    "tournament": {
+      "id": "bounty-2026-season-2",
+      "name": "BLAST Premier Bounty S2 2026",
+      "startDate": "2026-07-21T12:00:00",
+      "endDate": "2026-08-02T19:58:00",
+      "prizePool": "$1,150,000",
+      "externalId": null,
+      "location": "BLAST Studio, Malta"
+    },
+    "stage": {
+      "id": "c4144b87-3fac-4901-bf0b-560d9fc344c0",
+      "name": "Final 8",
+      "format": "single-elim-8-bounty",
+      "numberOfTeams": null,
+      "metadata": null,
+      "startDate": "2026-07-30T12:00:00",
+      "endDate": "2026-08-02T21:00:00",
+      "index": 1
+    },
+    "teamA": {
+      "id": "b75bce93-54a8-42b1-9b1c-1b16b5512ab7",
+      "name": "Team Liquid",
+      "shortName": "liquid",
+      "nationality": "US",
+      "externalId": "48",
+      "metadata": {
+        "references": {
+          "liquipedia": {
+            "teamName": "Team Liquid",
+            "pageId": 19571
+          }
+        }
+      }
+    },
+    "teamB": {
+      "id": "80b609cb-707b-48f2-83ee-0f68b8ba8cca",
+      "name": "Spirit",
+      "shortName": "spirit",
+      "nationality": "RU",
+      "externalId": "81",
+      "metadata": {
+        "references": {
+          "liquipedia": {
+            "teamName": "Team Spirit",
+            "pageId": 78203
+          }
+        }
+      }
+    },
+    "teamAScore": 0,
+    "teamBScore": 2,
+    "maps": [
+      {
+        "id": "62ea146a-5879-411c-8908-cfafe9ddc016",
+        "name": "de_dust2",
+        "scheduledAt": "2026-07-30T11:47:13.006Z",
+        "startedAt": "2026-07-30T13:02:02.684Z",
+        "endedAt": "2026-07-30T13:45:26.505Z",
+        "externalId": null,
+        "teamAScore": 7,
+        "teamBScore": 13
+      },
+      {
+        "id": "fd222a8f-7e99-48d8-b3bc-0b8292019209",
+        "name": "de_anubis",
+        "scheduledAt": "2026-07-30T13:46:58.005Z",
+        "startedAt": "2026-07-30T14:01:27.050Z",
+        "endedAt": "2026-07-30T14:41:28.973Z",
+        "externalId": null,
+        "teamAScore": 5,
+        "teamBScore": 13
+      }
+    ],
+    "metadata": {
+      "_t": "cs_match",
+      "externalStreamUrl": "https://www.youtube.com/watch?v=GMFSZwDBiP0"
+    }
+  }
+]

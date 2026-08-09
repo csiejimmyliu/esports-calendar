@@ -1,0 +1,102 @@
+[
+  {
+    "tournamentUuid": "6b0edf16-27d2-4207-a5f6-85af0345218f",
+    "tournamentName": "Group A",
+    "parentTournamentName": "Esports World Cup 2026 CS2",
+    "parentTournamentFormat": "",
+    "circuitName": "CS 2026",
+    "startDate": "2026-08-12T11:00:00.000Z",
+    "endDate": "2026-08-16T21:00:00.000Z",
+    "index": 0,
+    "label": "Group A",
+    "format": "gsl-8",
+    "numberOfTeams": null,
+    "metadata": null,
+    "matches": [
+      {
+        "uuid": "5443cdf0-6150-4477-bb14-958532855c63",
+        "type": "BO3",
+        "index": 0,
+        "name": "UB Quarter Final 1",
+        "timeOfSeries": "2026-08-12T11:00:00.000Z",
+        "teamA": null,
+        "teamB": null,
+        "teamAScore": 0,
+        "teamBScore": 0,
+        "maps": [],
+        "metadata": {
+          "_t": "cs_match"
+        },
+        "externalId": null,
+        "winnerGoesTo": {
+          "tournamentUUID": "6b0edf16-27d2-4207-a5f6-85af0345218f",
+          "seriesUUID": "1772fd28-ae1f-49ed-9446-f0f111a72e08",
+          "bracketPosition": "POSITION_A"
+        },
+        "loserGoesTo": {
+          "tournamentUUID": "6b0edf16-27d2-4207-a5f6-85af0345218f",
+          "seriesUUID": "43d92ed0-6c5a-48e3-9252-b2247338e844",
+          "bracketPosition": "POSITION_A"
+        },
+        "isLive": false,
+        "isCompleted": false
+      },
+      {
+        "uuid": "457593af-e022-490f-b83a-9afb58211448",
+        "type": "BO3",
+        "index": 1,
+        "name": "UB Quarter Final 2",
+        "timeOfSeries": "2026-08-12T11:00:00.000Z",
+        "teamA": null,
+        "teamB": null,
+        "teamAScore": 0,
+        "teamBScore": 0,
+        "maps": [],
+        "metadata": {
+          "_t": "cs_match"
+        },
+        "externalId": null,
+        "winnerGoesTo": {
+          "tournamentUUID": "6b0edf16-27d2-4207-a5f6-85af0345218f",
+          "seriesUUID": "1772fd28-ae1f-49ed-9446-f0f111a72e08",
+          "bracketPosition": "POSITION_B"
+        },
+        "loserGoesTo": {
+          "tournamentUUID": "6b0edf16-27d2-4207-a5f6-85af0345218f",
+          "seriesUUID": "43d92ed0-6c5a-48e3-9252-b2247338e844",
+          "bracketPosition": "POSITION_B"
+        },
+        "isLive": false,
+        "isCompleted": false
+      },
+      {
+        "uuid": "9567101d-3cfc-4bd4-9dd4-bc72aee72be8",
+        "type": "BO3",
+        "index": 2,
+        "name": "UB Quarter Final 3",
+        "timeOfSeries": "2026-08-12T11:00:00.000Z",
+        "teamA": null,
+        "teamB": null,
+        "teamAScore": 0,
+        "teamBScore": 0,
+        "maps": [],
+        "metadata": {
+          "_t": "cs_match"
+        },
+        "externalId": null,
+        "winnerGoesTo": {
+          "tournamentUUID": "6b0edf16-27d2-4207-a5f6-85af0345218f",
+          "seriesUUID": "80ebd0cf-4e93-494d-9326-3e0b48f801e0",
+          "bracketPosition": "POSITION_A"
+        },
+        "loserGoesTo": {
+          "tournamentUUID": "6b0edf16-27d2-4207-a5f6-85af0345218f",
+          "seriesUUID": "422fb756-4897-4849-9052-376c9a98a36b",
+          "bracketPosition": "POSITION_A"
+        },
+        "isLive": false,
+        "isCompleted": false
+      }
+    ]
+  }
+]
