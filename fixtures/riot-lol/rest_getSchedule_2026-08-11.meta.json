@@ -1,0 +1,37 @@
+{
+  "fixture": "rest_getSchedule_2026-08-11.json",
+  "source": "riot-rest-lol",
+  "request": {
+    "method": "GET",
+    "url": "https://esports-api.lolesports.com/persisted/gw/getSchedule?hl=en-US",
+    "queryParams": { "hl": "en-US" },
+    "pathParams": {},
+    "headers": {
+      "x-api-key": "<public static key, see .env.example RIOT_ESPORTS_API_KEY>",
+      "user-agent": "esports-calendar/0.1 (+https://github.com/csiejimmyliu/esports-calendar)",
+      "accept": "application/json"
+    }
+  },
+  "capturedOn": "2026-08-11T12:07:00.287Z",
+  "contents": "80 events. Captured to fix the hl=zh-TW/hl=en-US locale mismatch in rest_getSchedule.json (see fixtures/README.md), NOT to replace it: getSchedule returns a window around 'now', so this capture is a different set of matches from rest_getSchedule.json's 2026-08-09 window, not the same matches re-requested in a different locale. blockName is confirmed English ('Week 3' etc.), which is the thing this capture exists to demonstrate.",
+  "whyThisFixtureExists": "Neither trimmed nor a drop-in replacement for rest_getSchedule.json. rest_getSchedule.json is depended on by exact-count/hardcoded-id assertions in tests/riot-rest-parse.test.ts, tests/riot-rest-adapter.test.ts, and tests/cli-select.test.ts, several of which need edge cases (9 lossy-state corrections, a match reported completed ahead of its own start time, a real 2-0 Bo3) that this capture does not reproduce -- because those matches have rolled out of the 'now' window in the two days since. This file is a reference sample proving the locale fix works, and the first entry to check against fixtures/REQUIREMENTS.md when deciding whether a future coordinated recapture can replace rest_getSchedule.json outright.",
+  "namingNote": "Suffixed by capture DATE rather than by a request parameter (unlike rest_getSchedule_ewc.json, suffixed by leagueId). The request here is otherwise identical to rest_getSchedule.json's (no parameters beyond hl) -- what differs is only when it was sent, because getSchedule has no time-window parameter and returns whatever is near 'now' at request time.",
+  "measurements": {
+    "measuredOn": "2026-08-11, against this file",
+    "stateCounts": { "completed": 37, "inProgress": 3, "unstarted": 40 },
+    "note": "inProgress appears here and never in rest_getSchedule.json (which only has completed/unstarted). Not a new risk: src/sources/riot/rest/parse.ts's KNOWN_STATES already maps it, and the lossy-state correction logic only ever downgrades to 'unstarted', so an inProgress row falls through unchanged when it has a result and is corrected the same as any other state when it does not.",
+    "lossyStateCandidates": 0,
+    "tbdInvolvingEvents": 3,
+    "comparisonToRestGetSchedule": "rest_getSchedule.json (2026-08-09, zh-TW) has 9 lossy-state candidates across 3 minor leagues and 7 TBD-involving events; this capture has 0 and 3 respectively. See fixtures/REQUIREMENTS.md."
+  },
+  "verification": {
+    "hl": "verified from contents -- blockName reads 'Week 3' (English), confirming en-US was honoured.",
+    "capturedOn": "verified. ISO timestamp recorded by capture-fixture.ts at request time."
+  },
+  "recapture": {
+    "capturable": true,
+    "endpoint": "getSchedule",
+    "params": { "hl": "en-US" },
+    "transform": []
+  }
+}

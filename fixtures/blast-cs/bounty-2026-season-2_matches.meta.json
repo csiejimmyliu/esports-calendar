@@ -4,9 +4,13 @@
   "request": {
     "method": "GET",
     "url": "https://api.blast.tv/v2/games/cs/tournaments/bounty-2026-season-2/matches",
-    "pathParams": { "tournamentSlug": "bounty-2026-season-2" },
+    "pathParams": {
+      "tournamentSlug": "bounty-2026-season-2"
+    },
     "queryParams": {},
-    "headers": { "origin": "https://blast.tv" }
+    "headers": {
+      "origin": "https://blast.tv"
+    }
   },
   "capturedOn": "2026-08-09",
   "contents": "A finished tournament: 31 matches, all completed, every one with real teams. Trimmed to 4 covering the series-length spread (a 3-1 BO5, a 2-0, a 2-1, and an 0-2).",
@@ -15,5 +19,9 @@
     "http": "200, 55924 bytes at capture",
     "noStateField": "confirmed — /matches has no state field. State must come from /brackets or be derived from scores and maps."
   },
-  "knownGap": "Contains no TBD match, because the tournament is over. The TBD convention (teamA and teamB both plain null) is captured in esports-world-cup-2026-cs2_brackets.json instead."
+  "knownGap": "Contains no TBD match, because the tournament is over. The TBD convention (teamA and teamB both plain null) is captured in esports-world-cup-2026-cs2_brackets.json instead.",
+  "recapture": {
+    "capturable": false,
+    "reason": "CS2 via BLAST is off the roadmap (SPEC §0, §8: \"a second source is last\"). scripts/capture-fixture.ts only knows the Riot REST envelope; BLAST is a different API entirely (api.blast.tv/v2) with no shared client."
+  }
 }

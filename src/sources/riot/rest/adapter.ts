@@ -98,14 +98,23 @@ const CAPABILITIES: SourceCapabilities = {
   // Riot supplies no streams at all. Settled; League.defaultStreamUrl is the answer.
   streamUrls: false,
   /**
-   * False, and this is about the adapter rather than the endpoint.
+   * False, and this is about the adapter rather than the endpoint — and also about a gap in what
+   * has actually been probed, not only about what the adapter has chosen to skip.
    *
-   * getSchedule's `pages` cursors are real and work — `?leagueId=` returns full history and the
-   * cursors page through it. But `fetchMatches` sends no cursor and ignores its `window` argument
-   * entirely, so declaring `true` would be a lie the sync layer branches on: it would request a
-   * range and silently receive everything. The flag describes what this code does, not what the
-   * API could support. Historical backfill (SPEC: past schedule must be browsable) is the change
-   * that flips this, and it flips the implementation first.
+   * `fetchMatches` sends no cursor and ignores its `window` argument entirely, so declaring `true`
+   * would be a lie the sync layer branches on: it would request a range and silently receive
+   * everything. That much is a settled fact about this code.
+   *
+   * What is NOT settled: `data.schedule.pages.{older,newer}` do carry non-null base64 cursors on
+   * an unparameterised `getSchedule` call (verified — see fixtures/riot-lol/rest_getSchedule.json)
+   * and are both null on the `leagueId`-scoped capture used for `rest_getSchedule_ewc.json`, which
+   * is consistent with that call returning a single page rather than with pagination working end
+   * to end. **The query parameter name to send a cursor back has never been recorded or probed
+   * anywhere in this repo** — an earlier draft of this comment said the cursors "actually work",
+   * which overstated a field being present and non-null into a claim about a request nobody has
+   * made. See docs/sources/lolesports-rest.md for the same correction. Historical backfill (SPEC:
+   * past schedule must be browsable) is the change that flips this flag, and the first step is
+   * probing that parameter name, not implementing against a guess.
    */
   timeWindow: false,
 };

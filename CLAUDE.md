@@ -44,10 +44,13 @@ requirements on 2026-08-11; everything older had been extrapolated by a model an
 - **Adapter boundary.** No source's URLs, credentials, identifiers, or response shapes leak above the
   adapter interface.
 - **A capability flag describes the code, not the endpoint.** `riot-rest-lol` declares
-  `timeWindow: false` although `getSchedule`'s cursors work, because `fetchMatches` sends no cursor;
-  and `explicitState: false` although a `state` field exists, because the adapter overrides it. A flag
-  that overstates the implementation is worse than an absent one, since the sync layer branches on it.
-  Pin the flag to the behaviour in a test.
+  `timeWindow: false` because `fetchMatches` sends no cursor — and, separately, because the query
+  parameter a cursor would actually be sent back as has never been recorded or probed (the
+  `pages.{older,newer}` fields are confirmed non-null on an unparameterised call, which is weaker
+  than confirming pagination works end to end; see `src/sources/riot/rest/adapter.ts` and
+  `docs/sources/lolesports-rest.md`). And `explicitState: false` although a `state` field exists,
+  because the adapter overrides it. A flag that overstates the implementation is worse than an
+  absent one, since the sync layer branches on it. Pin the flag to the behaviour in a test.
 - **Filter is not follow.** Filtering the overview is view state and must issue no write. Following is
   stored data that changes the calendar. Blurring the two makes the product's central behaviour
   unpredictable, and it is the easiest thing in the UI to blur.
@@ -64,7 +67,9 @@ requirements on 2026-08-11; everything older had been extrapolated by a model an
   client actually sends is invisible — `rest_getSchedule.json` was captured under `hl=zh-TW` while the
   client pins `hl=en-US`, and nothing surfaced that until a sidecar was written. `npm run capture`
   writes both halves; use it rather than saving a response by hand. State plainly which fields were
-  verified and which were inferred.
+  verified and which were inferred. **`fixtures/README.md` is where the full doctrine lives** — why
+  fixtures are frozen test inputs rather than live data, the recapture ritual, and which files are
+  retained evidence rather than pending work. Read it before touching anything under `fixtures/`.
 - **Fixtures are verbatim, with two exceptions, and both are recorded in the sidecar.**
   1. A field SPEC excludes as personal data may be removed. The sidecar then says
      `verbatim-except-<fields>`. `getTeams` carries a `players` roster and is the case this exists for.

@@ -23,7 +23,12 @@ Probed 2026-08-09 against `fixtures/riot-lol/rest_getSchedule.json` (80 events, 
   it has been stable — "unchanged for years" was asserted in an earlier draft with no evidence and is
   withdrawn. The client treats a 4xx as final precisely so a rotated key fails loudly.*
 - **Locale**: `hl=en-US`. Use en-US as the canonical identity locale for the whole system.
-- **Pagination**: real, working. `data.schedule.pages.{older,newer}` return base64 cursors.
+- **Pagination**: `data.schedule.pages.{older,newer}` return non-null base64 cursors on an
+  unparameterised `getSchedule` call, and both are null on the `leagueId`-scoped capture used for
+  `rest_getSchedule_ewc.json` (consistent with that call returning a single page). **What is not
+  known: the query parameter name a cursor is sent back as.** It has never been recorded or probed
+  anywhere in this repo. An earlier version of this line said "real, working", which stated a
+  request nobody has made as a fact about a field that is merely present and non-null.
 - Endpoints: `getSchedule`, `getLeagues`, `getTournamentsForLeague`, `getTeams`,
   `getEventDetails`, `getStandings`, `getLive`, `getCompletedEvents`
 
@@ -143,7 +148,11 @@ Absent from `getSchedule` entirely. Unresolved whether `getEventDetails` or `get
 ## What REST is good for
 
 - **Failover** when the GraphQL persisted hash is invalidated by a frontend deploy.
-- **Historical backfill** — its cursors actually work; the GraphQL ones were null.
+- **Historical backfill, plausibly** — its `pages.{older,newer}` cursors are non-null on an
+  unparameterised call (the GraphQL ones were null even there), which is evidence the endpoint is
+  paginated. It is not evidence that backfill *works*: the query parameter a cursor is sent back as
+  has never been recorded or tried. Downgraded from an earlier "actually work" — see the Pagination
+  line above and `src/sources/riot/rest/adapter.ts`'s `timeWindow` comment for the same correction.
 - `record { wins, losses }` if standings are ever wanted (out of scope for v1).
 
 ## Scope filtering problem

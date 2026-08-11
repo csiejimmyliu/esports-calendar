@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "capture": "tsx scripts/capture-fixture.ts"
+    "capture": "tsx scripts/capture-fixture.ts",
+    "capture:check": "tsx scripts/capture-check.ts",
+    "capture:refresh": "tsx scripts/capture-refresh.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

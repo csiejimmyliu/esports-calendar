@@ -770,22 +770,34 @@ the join moved to `name` (zero name collisions in the narrowed table, so there i
 it to iterate over), which is why it was left undone rather than dismissed. Reconsider if a name
 collision ever appears, or before widening coverage.
 
-**The full `getTeams` capture exists only on the owner's machine.** `rest_getTeams_en.json`, 1542967
-bytes, sits at the repo root and is `.gitignore`d by name — it carries every pro player's roster, so it
-must not be committed. Several figures in `docs/sources/lolesports-rest.md` and in
-`fixtures/riot-lol/rest_getTeams.meta.json` are measured against it and cannot be reproduced from a
-fresh clone. `npm run capture -- getTeams <path>` re-fetches it; the sidecar records the exact command.
-Anyone verifying those numbers needs to do that first.
+**The full `getTeams` capture is now committed and test-backed.**
+`fixtures/riot-lol/rest_getTeams_full.json` (1568 rows, `players` stripped — the only personal-data
+field the parser was already required to discard) replaced the ungitignored, machine-local
+`rest_getTeams_en.json` as the source of truth for these figures. `tests/team-index-collisions.test.ts`
+asserts them directly against the committed file: 46 code collisions / 15 name collisions over all
+1176 active rows, 0 / 1 (EG) narrowed to the eight covered leagues' regional teams (168 rows).
+`rest_getTeams_en.json` itself remains gitignored and untouched — the fix was committing a
+`players`-stripped sibling, not exposing the original.
 
 This is not theoretical. A figure in that note said 27 colliding codes among all active rows for two
 days; the real number is 46, and 27 turned out to be the count of collisions involving an academy squad.
-Nothing caught it because nothing could — the response is not in the repo and no test asserts it. It
-surfaced incidentally, while measuring `name` against `code` for the join-key decision.
+Nothing caught it because nothing could — the response was not in the repo and no test asserted it. It
+surfaced incidentally, while measuring `name` against `code` for the join-key decision. **That failure
+mode is now closed**: the figures live in a test, not only in a comment.
 
-**`hl=en-US`, and a disclosure.** Every request pins it, for two verified reasons: display fields
-come back translated, and `getTeams.homeLeague` joins by localized name, so identity must resolve
-from one fixed locale. **But the primary schedule fixture was captured under `hl=zh-TW`** — recorded
-in `fixtures/riot-lol/rest_getSchedule.meta.json` as a known discrepancy. The visible symptom is that
-the CLI prints `第11週` where live would print `Week 11`. No assertion currently depends on a
-translated field; any future one would disagree with production. Re-capturing under `en-US` is the
-fix and is not yet done.
+**`hl=en-US`, and a disclosure that turned out to be more permanent than expected.** Every request
+pins it, for two verified reasons: display fields come back translated, and `getTeams.homeLeague`
+joins by localized name, so identity must resolve from one fixed locale. **But the primary schedule
+fixture was captured under `hl=zh-TW`** — recorded in `fixtures/riot-lol/rest_getSchedule.meta.json`
+as a known discrepancy. The visible symptom is that the CLI prints `第11週` where live would print
+`Week 11`.
+
+A locale-correct reference capture exists (`fixtures/riot-lol/rest_getSchedule_2026-08-11.json`) and
+confirms the fix works. **It does not replace the original**, and a plain re-capture cannot close
+this: `getSchedule` with no parameters returns whatever is near "now" at request time, not a fixed
+slice of history, so two days after the original capture several edge cases specific tests depend on
+— 9 "lossy-state" corrections among them — no longer exist in any fresh capture, by construction. No
+assertion currently depends on a mistranslated field, so nothing is silently wrong; but closing this
+for real needs a coordinated re-capture of every `riot-lol/` fixture on one day, plus rewriting the
+tests that assert exact counts and hardcoded ids from the 2026-08-09 capture into structural
+assertions. `fixtures/REQUIREMENTS.md` is the checklist for that day.

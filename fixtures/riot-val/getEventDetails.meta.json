@@ -4,7 +4,10 @@
   "request": {
     "method": "GET",
     "url": "https://esports-api.service.valorantesports.com/persisted/val/getEventDetails",
-    "queryParams": { "hl": "en-US", "id": "116849606242173103" },
+    "queryParams": {
+      "hl": "en-US",
+      "id": "116849606242173103"
+    },
     "headers": {
       "x-api-key": "<the same public static key as the LoL path>"
     }
@@ -15,5 +18,9 @@
     "id": "verified — present in the response as data.event.id",
     "hl": "verified from contents — league.name \"Game Changers EMEA\" is English",
     "tournamentShape": "note that tournament is {id} here and {split, season} in getSchedule — no overlap. Validate per endpoint, never per field name."
+  },
+  "recapture": {
+    "capturable": false,
+    "reason": "VALORANT is off the roadmap (SPEC §0, decided 2026-08-09) until the LoL calendar is complete. scripts/capture-fixture.ts only targets the LoL path segment (/persisted/gw/); re-pointing it at /persisted/val/ is the \"an hour of work\" SPEC §0 describes, not yet done."
   }
 }

@@ -4,7 +4,9 @@
   "request": {
     "method": "GET",
     "url": "https://esports-api.lolesports.com/persisted/gw/getLeagues",
-    "queryParams": { "hl": "en-US" },
+    "queryParams": {
+      "hl": "en-US"
+    },
     "headers": {
       "x-api-key": "<public static key, see .env.example RIOT_ESPORTS_API_KEY>"
     }
@@ -15,5 +17,13 @@
     "hl": "verified 2026-08-09 by re-requesting both locales: hl=en-US returns region \"KOREA\", hl=zh-TW returns \"韓國\". This fixture contains the former.",
     "capturedOn": "inferred; not recorded at capture time"
   },
-  "knownDiscrepancy": "Captured under a different locale than its sibling rest_getSchedule.json (en-US here, zh-TW there). `region` is a translated field and is used as a UI grouping, so mixed-locale fixtures would produce a mixed-locale league table. This one matches the locale the client pins; the schedule fixture does not."
+  "knownDiscrepancy": "Captured under a different locale than its sibling rest_getSchedule.json (en-US here, zh-TW there). `region` is a translated field and is used as a UI grouping, so mixed-locale fixtures would produce a mixed-locale league table. This one matches the locale the client pins; the schedule fixture does not.",
+  "recapture": {
+    "capturable": true,
+    "endpoint": "getLeagues",
+    "params": {
+      "hl": "en-US"
+    },
+    "transform": []
+  }
 }

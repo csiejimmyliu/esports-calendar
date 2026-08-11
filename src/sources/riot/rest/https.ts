@@ -6,8 +6,9 @@
  * This applies to getTeams as much as to getSchedule. The getTeams asset is usually the better and
  * newer one and is preferred for that reason, but it is *not* more secure: 153 of the 168 narrowed
  * rows are http, and 1358 of all 1568. An earlier assumption that getTeams solved mixed content was
- * wrong. (Counts measured against the full capture, which is not in version control — see
- * fixtures/riot-lol/rest_getTeams.meta.json. In the committed 71-row fixture it is 47 of 47.)
+ * wrong. (Counts measured against the full 1568-row capture, committed at
+ * fixtures/riot-lol/rest_getTeams_full.json — see tests/team-index-collisions.test.ts. In the
+ * trimmed 71-row fixture it is 47 of 47.)
  *
  * Never warned per item: it is nearly every image in every response, and hundreds of identical
  * warnings would bury the one that matters.

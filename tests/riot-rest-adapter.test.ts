@@ -43,8 +43,10 @@ describe('capabilities are declared honestly', () => {
 
   it('does not claim a time window it does not honour', async () => {
     /**
-     * getSchedule's cursors are real, but fetchMatches never sends one. A `true` here would be a
-     * lie the sync layer branches on: it would ask for a range and silently receive everything.
+     * fetchMatches never sends a cursor, regardless of whether getSchedule's pagination could
+     * support one end to end (unresolved — see the `timeWindow` comment in adapter.ts). A `true`
+     * here would be a lie the sync layer branches on: it would ask for a range and silently
+     * receive everything.
      *
      * The assertion is deliberately two-sided rather than `toBe(false)` — it pins the *agreement*
      * between the flag and the behaviour, so implementing cursors and flipping the flag passes,

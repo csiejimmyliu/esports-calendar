@@ -1,39 +1,35 @@
 /**
- * Re-capture a Riot REST fixture together with the sidecar that makes it re-capturable.
+ * Capture a brand-new Riot REST fixture together with a sidecar in the same shape as every
+ * committed one (`fixture/source/request/capturedOn/contents/recapture`).
  *
- * This exists because of a specific problem. Several load-bearing figures in
- * docs/sources/lolesports-rest.md were measured against the full 1568-row `getTeams` response,
- * which is 1.5 MB and deliberately not in version control. The committed fixture is trimmed to 71
- * rows and cannot reproduce those figures, so before this script existed the numbers were merely
- * *disclosed* as unverifiable. Now they are re-derivable: run this, then re-run the measurement.
+ * This is the tool CLAUDE.md refers to when it says "use `npm run capture` rather than saving a
+ * response by hand" — a hand-saved fixture is how the rest_getSchedule.json hl=zh-TW discrepancy
+ * went unrecorded for two days. It writes both halves together so a fixture can never exist
+ * without the sidecar that makes it re-capturable.
  *
- * It writes two files:
- *   <out>.json            the response, verbatim
- *   <out>.meta.json       the request that produced it — full URL, every parameter, non-secret
- *                         headers, capture timestamp, and byte/row counts
- *
- * The api key is never written to the sidecar. CLAUDE.md requires every fixture to record its
- * request; it does not require leaking credentials into the repo.
+ * For an EXISTING fixture, prefer `npm run capture:refresh <fixture>` instead — it reads the
+ * fixture's own recorded `recapture.transform` and reports a shape diff before writing anything.
+ * This script always produces a fresh, untrimmed capture with an empty transform; trimming has to
+ * be designed and recorded by hand afterwards, the way rest_getTeams.json's was.
  *
  * Usage:
- *   RIOT_API_KEY=... npm run capture -- getTeams fixtures/riot-lol/rest_getTeams_full
- *   RIOT_API_KEY=... npm run capture -- getSchedule out/sched --leagueId=98767991310872058
+ *   RIOT_ESPORTS_API_KEY=... npm run capture -- getSchedule fixtures/riot-lol/rest_getSchedule_new
+ *   RIOT_ESPORTS_API_KEY=... npm run capture -- getSchedule out/sched --leagueId=98767991310872058
  *
- * Nothing here runs at runtime. It is a build-time tool, like the agents that wrote the adapters.
+ * Nothing here runs at runtime. It is a build-time tool, like the agents that write adapters.
  */
 
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
-import { RIOT_REST_BASE, RiotRestClient, IDENTITY_LOCALE } from '../src/sources/riot/rest/client.js';
+import { dirname, basename } from 'node:path';
 
-const USER_AGENT = 'esports-calendar/0.1 (+https://github.com/csiejimmyliu/esports-calendar)';
+import { apiKeyFromEnv, describeUrl, makeClient, USER_AGENT } from './capture-lib.js';
 
 function usage(message: string): never {
   process.stderr.write(`${message}\n\nusage: npm run capture -- <endpoint> <outPathWithoutExtension> [--key=value ...]\n`);
   process.exit(2);
 }
 
-/** Count the rows of whichever top-level collection this endpoint returns, if we recognise one. */
+/** Count the rows of whichever top-level collection this endpoint returns, if recognised. */
 function countRows(json: unknown): Record<string, number> {
   const out: Record<string, number> = {};
   if (typeof json !== 'object' || json === null) return out;
@@ -64,48 +60,57 @@ async function main(): Promise<void> {
     params[flag.slice(2, eq)] = flag.slice(eq + 1);
   }
 
-  const apiKey = process.env['RIOT_API_KEY'];
-  if (apiKey === undefined || apiKey === '') {
-    usage('RIOT_API_KEY is not set; see .env.example');
-  }
-
-  const client = new RiotRestClient({ apiKey, userAgent: USER_AGENT });
+  const apiKey = apiKeyFromEnv();
+  const client = makeClient(apiKey);
   const capturedAt = new Date().toISOString();
   const res = await client.get(endpoint, params);
+  const url = describeUrl(endpoint, params);
 
-  // Reconstruct exactly what the client sent, so the sidecar is a replayable record rather than a
-  // description of one. `hl` is pinned inside the client and must appear here even though the
-  // caller never passed it.
-  const url = new URL(`${RIOT_REST_BASE}/${endpoint}`);
-  url.searchParams.set('hl', IDENTITY_LOCALE);
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-
-  const meta = {
-    endpoint,
-    url: url.toString(),
-    queryParams: { hl: IDENTITY_LOCALE, ...params },
-    headers: {
-      'x-api-key': '<public static key, see .env.example / RIOT_API_KEY>',
-      'user-agent': USER_AGENT,
-      accept: 'application/json',
+  const sidecar = {
+    fixture: `${basename(outBase)}.json`,
+    source: 'riot-rest-lol',
+    request: {
+      method: 'GET',
+      url,
+      queryParams: { hl: 'en-US', ...params },
+      pathParams: {},
+      headers: {
+        'x-api-key': '<public static key, see .env.example RIOT_ESPORTS_API_KEY>',
+        'user-agent': USER_AGENT,
+        accept: 'application/json',
+      },
     },
-    capturedAt,
-    bytes: res.bytes,
-    rowCounts: countRows(res.json),
-    verbatim: 'verbatim' as const,
-    recapture: `RIOT_API_KEY=... npm run capture -- ${endpoint} ${outBase}${Object.entries(params)
-      .map(([k, v]) => ` --${k}=${v}`)
-      .join('')}`,
+    capturedOn: capturedAt,
+    contents: `Freshly captured, untrimmed. Row counts: ${JSON.stringify(countRows(res.json))}.`,
+    recapture: {
+      capturable: true,
+      endpoint,
+      params: { hl: 'en-US', ...params },
+      transform: [],
+    },
+    recaptureNotes: {
+      note:
+        'This sidecar was generated by capture-fixture.ts and has NOT been reviewed for trimming ' +
+        'or personal data. Before committing: check whether the response needs trimming (size, or ' +
+        'a personal-data field like players[]), design the transform by hand if so, and re-run ' +
+        'capture:refresh to prove the transform reproduces the trimmed file. See fixtures/README.md.',
+    },
   };
 
   await mkdir(dirname(outBase), { recursive: true });
   await writeFile(`${outBase}.json`, `${JSON.stringify(res.json, null, 2)}\n`);
-  await writeFile(`${outBase}.meta.json`, `${JSON.stringify(meta, null, 2)}\n`);
+  await writeFile(`${outBase}.meta.json`, `${JSON.stringify(sidecar, null, 2)}\n`);
 
   process.stdout.write(
     `${outBase}.json      ${String(res.bytes)} bytes\n` +
-      `${outBase}.meta.json  ${JSON.stringify(meta.rowCounts)}\n`,
+      `${outBase}.meta.json  ${JSON.stringify(countRows(res.json))}\n` +
+      `\nThis fixture is UNTRIMMED and UNREVIEWED. See recaptureNotes in the sidecar before committing.\n`,
   );
 }
 
-await main();
+try {
+  await main();
+} catch (err) {
+  process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+  process.exit(1);
+}

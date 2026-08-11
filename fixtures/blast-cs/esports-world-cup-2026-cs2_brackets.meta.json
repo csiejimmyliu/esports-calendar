@@ -4,9 +4,13 @@
   "request": {
     "method": "GET",
     "url": "https://api.blast.tv/v2/games/cs/tournaments/esports-world-cup-2026-cs2/brackets",
-    "pathParams": { "tournamentSlug": "esports-world-cup-2026-cs2" },
+    "pathParams": {
+      "tournamentSlug": "esports-world-cup-2026-cs2"
+    },
     "queryParams": {},
-    "headers": { "origin": "https://blast.tv" }
+    "headers": {
+      "origin": "https://blast.tv"
+    }
   },
   "capturedOn": "2026-08-09",
   "contents": "An upcoming tournament (starts 2026-08-12). 6 stages, 112 undecided team slots. Trimmed to 1 stage and 3 matches, all of them TBD.",
@@ -15,5 +19,9 @@
     "http": "200, 27835 bytes at capture",
     "tbdConvention": "confirmed — teamA and teamB are plain null, with teamAScore/teamBScore 0 and maps []. No sentinel object, no \"TBD\" string, inverting Riot's convention."
   },
-  "pairedWith": "esports-world-cup-2026-cs2_matches.json, captured in the same minute, which is empty."
+  "pairedWith": "esports-world-cup-2026-cs2_matches.json, captured in the same minute, which is empty.",
+  "recapture": {
+    "capturable": false,
+    "reason": "CS2 via BLAST is off the roadmap (SPEC §0, §8: \"a second source is last\"). scripts/capture-fixture.ts only knows the Riot REST envelope; BLAST is a different API entirely (api.blast.tv/v2) with no shared client."
+  }
 }

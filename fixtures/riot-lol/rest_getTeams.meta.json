@@ -4,7 +4,9 @@
   "request": {
     "method": "GET",
     "url": "https://esports-api.lolesports.com/persisted/gw/getTeams",
-    "queryParams": { "hl": "en-US" },
+    "queryParams": {
+      "hl": "en-US"
+    },
     "pathParams": {},
     "headers": {
       "x-api-key": "<public static key, see .env.example RIOT_ESPORTS_API_KEY>",
@@ -16,7 +18,9 @@
   "contents": "1568 teams trimmed to 71. The full response is 1542967 bytes.",
   "trimming": {
     "rule": "verbatim-except-players",
-    "removedFields": ["players"],
+    "removedFields": [
+      "players"
+    ],
     "reason": "players carries real people's names. SPEC excludes player data from this project, and the repo is public. The parser is required to discard the field, so removing it costs no test fidelity. See fixtures/README.md.",
     "rowsBefore": 1568,
     "rowsAfter": 71,
@@ -37,21 +41,129 @@
     "byteIdenticalToPriorCapture": "The live capture was byte-identical (1542967 bytes, cmp clean) to an undocumented curl taken earlier the same day, so the trimmed content is unchanged by the re-capture. The re-capture exists to give this sidecar verified provenance rather than inferred provenance."
   },
   "recapture": {
-    "command": "RIOT_API_KEY=<key> npm run capture -- getTeams fixtures/riot-lol/rest_getTeams_full",
-    "why": "The measurements below are taken on the full 1568-row response, which is not in version control (1.5 MB, gitignored). Before this command existed those figures could only be disclosed as unverifiable; now they can be re-derived. Re-capture, re-measure, then re-trim to this file.",
-    "afterCapture": "The full file must NOT be committed, and it still carries players[] -- do not commit it under any name."
+    "capturable": true,
+    "endpoint": "getTeams",
+    "params": {
+      "hl": "en-US"
+    },
+    "transform": [
+      {
+        "op": "stripField",
+        "path": "data.teams[].players",
+        "why": "players carries real people's names; SPEC excludes player data and the parser discards this field regardless, so removing it costs no test fidelity."
+      },
+      {
+        "op": "selectByKey",
+        "path": "data.teams",
+        "key": "id",
+        "keep": [
+          "100205572995797818",
+          "100205573495116443",
+          "100205573496804586",
+          "100205576309502431",
+          "100285330168091787",
+          "100725845018863243",
+          "100725845022060229",
+          "101157821444002947",
+          "101383793567806688",
+          "101383793572656373",
+          "101388912911039804",
+          "102747101565183056",
+          "103461966951059521",
+          "103461966965149786",
+          "105397404796640412",
+          "105505619546859895",
+          "105550026570060790",
+          "105550047979361273",
+          "105550049871017396",
+          "107251245690956393",
+          "107251295460371069",
+          "107563714667537640",
+          "107598699275015260",
+          "107700199633958891",
+          "107700204561086446",
+          "107760667929003738",
+          "109218871531830908",
+          "109480056092207899",
+          "109480204628225868",
+          "109637393694097670",
+          "109675490370327425",
+          "110428362822825796",
+          "111504538396430510",
+          "111692118851466302",
+          "113951569973088490",
+          "114868016111590239",
+          "115688562107799886",
+          "116046715496396520",
+          "116046738539653197",
+          "116432032495413501",
+          "116432043586042764",
+          "116988203842306891",
+          "116988207170900793",
+          "116988210286068561",
+          "116988213569765510",
+          "98767991853197861",
+          "98767991866488695",
+          "98767991877340524",
+          "98767991882270868",
+          "98767991887166787",
+          "98767991926151025",
+          "98767991954244555",
+          "98926509883054987",
+          "98926509885559666",
+          "98926509892121852",
+          "99322214695067838",
+          "99566404579461230",
+          "99566404581868574",
+          "99566404585387054",
+          "99566404846951820",
+          "99566404848691211",
+          "99566404850008779",
+          "99566404852189289",
+          "99566404853058754",
+          "99566404853854212",
+          "99566404854685458",
+          "99566404856367466",
+          "99566405941863385",
+          "99566408217955692",
+          "99566408219409348",
+          "99566408221961358"
+        ],
+        "sort": "id",
+        "why": "the 71 rows selected per trimming.selection below: every team needed to resolve rest_getSchedule.json / rest_getSchedule_ewc.json, both halves of the one colliding code (EG), one null-homeLeague row, one archived row, and three LCK Challengers rows that collide on code with their parent orgs."
+      }
+    ]
   },
   "measurements": {
-    "note": "Measured against the FULL 1568-row response, not this trimmed file. The trimmed file cannot support these figures and the tests do not assert them. Re-derive with the recapture command above rather than trusting them.",
+    "note": "Measured against the FULL 1568-row response, not this trimmed file. The trimmed file cannot support these figures. As of this change the full response is committed at fixtures/riot-lol/rest_getTeams_full.json (players stripped; see its own .meta.json), so these figures are asserted directly in tests/team-index-collisions.test.ts and re-derivable by anyone from a clone -- not merely disclosed as unverifiable. Re-run npm run capture -- getTeams ... to check them against a fresh live response.",
     "measuredOn": "2026-08-09 capture; team-table figures re-measured 2026-08-11 after coverage narrowed to eight leagues",
-    "statusCounts": { "active": 1176, "archived": 392 },
+    "statusCounts": {
+      "active": 1176,
+      "archived": 392
+    },
     "activeWithNullHomeLeague": 486,
     "collisionsByCandidateSet": {
       "note": "Re-measured 2026-08-11 while choosing the join key. An earlier version of this file recorded 27 colliding codes among all active rows; that was wrong -- 46 codes collide, and 27 is the count of collisions involving an academy squad. Nothing could catch it because the full response is not committed and no test asserts it.",
-      "allRows": { "rows": 1568, "byCode": 97, "byName": 49 },
-      "activeOnly": { "rows": 1176, "byCode": 46, "byName": 15 },
-      "activeWithHomeLeague": { "rows": 690, "byCode": 16, "byName": 1 },
-      "narrowedToCoveredRegional": { "rows": 168, "byCode": 1, "byName": 0 },
+      "allRows": {
+        "rows": 1568,
+        "byCode": 97,
+        "byName": 49
+      },
+      "activeOnly": {
+        "rows": 1176,
+        "byCode": 46,
+        "byName": 15
+      },
+      "activeWithHomeLeague": {
+        "rows": 690,
+        "byCode": 16,
+        "byName": 1
+      },
+      "narrowedToCoveredRegional": {
+        "rows": 168,
+        "byCode": 1,
+        "byName": 0
+      },
       "ofTheActiveCodeCollisions": "27 of the 46 are a first team and its own Challengers/Academy/Youth squad, because a code names the ORGANISATION rather than the squad. This is why the join key is name."
     },
     "teamTable": {
@@ -61,7 +173,9 @@
       "distinctNames": 168,
       "collidingNames": [],
       "distinctCodes": 167,
-      "collidingCodes": ["EG"],
+      "collidingCodes": [
+        "EG"
+      ],
       "httpImages": 153,
       "namesWithTrailingWhitespaceInFullCapture": 6
     },
@@ -80,9 +194,15 @@
       "note": "What the committed 71 rows can actually support, and what the tests assert.",
       "teamTableSize": 47,
       "distinctCodes": 46,
-      "collidingCodes": ["EG"],
+      "collidingCodes": [
+        "EG"
+      ],
       "httpImages": 47,
       "activeRowsHomedAtAnInternationalEvent": 0
     }
+  },
+  "recaptureNotes": {
+    "supersededNote": "This file previously said the full response must never be committed under any name. That is reversed as of this change: fixtures/riot-lol/rest_getTeams_full.json commits the full 1568-row response with the SAME stripField(players) transform applied, which removes the only personal-data field. What changes is that the load-bearing collision figures in docs/sources/lolesports-rest.md and config/leagues.json are now re-derivable by anyone from a clone, instead of only by whoever holds the ungitignored rest_getTeams_en.json. See fixtures/riot-lol/rest_getTeams_full.meta.json.",
+    "howToRecapture": "RIOT_ESPORTS_API_KEY=... npm run capture -- getTeams fixtures/riot-lol/rest_getTeams_full — then run npm run capture:refresh fixtures/riot-lol/rest_getTeams.json, which reads this recapture.transform block, applies it to the full capture, and reports whether the result still matches the committed 71 rows."
   }
 }

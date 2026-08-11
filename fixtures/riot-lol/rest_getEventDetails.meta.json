@@ -4,7 +4,10 @@
   "request": {
     "method": "GET",
     "url": "https://esports-api.lolesports.com/persisted/gw/getEventDetails",
-    "queryParams": { "hl": "<unverified>", "id": "116566854547835328" },
+    "queryParams": {
+      "hl": "<unverified>",
+      "id": "116566854547835328"
+    },
     "headers": {
       "x-api-key": "<public static key, see .env.example RIOT_ESPORTS_API_KEY>"
     }
@@ -14,5 +17,17 @@
   "verification": {
     "id": "verified — present in the response as data.event.id",
     "hl": "NOT VERIFIED. This response contains no translated field (no blockName, no region), so the locale it was captured under cannot be recovered from its contents. Re-capture with hl=en-US if the locale ever matters here."
+  },
+  "recapture": {
+    "capturable": true,
+    "endpoint": "getEventDetails",
+    "params": {
+      "hl": "en-US",
+      "id": "116566854547835328"
+    },
+    "transform": []
+  },
+  "recaptureNotes": {
+    "note": "hl is recorded as en-US because the client always sends that value (IDENTITY_LOCALE), matching the recapture command below — but verification.hl in this same file already discloses that the CONTENT of this particular response cannot itself prove which locale produced it (no translated field present). The two statements are consistent: this is what was almost certainly sent, not what was read back."
   }
 }
