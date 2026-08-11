@@ -9,10 +9,10 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "probe": "tsx scripts/probe-source.ts"
+    "capture": "tsx scripts/capture-fixture.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

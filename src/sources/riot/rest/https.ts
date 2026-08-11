@@ -4,9 +4,10 @@
  * iOS — gets the same URL.
  *
  * This applies to getTeams as much as to getSchedule. The getTeams asset is usually the better and
- * newer one and is preferred for that reason, but it is *not* more secure: 271 of the 290 rows in
- * the team table are http, and 1358 of all 1568. An earlier assumption that getTeams solved mixed
- * content was wrong.
+ * newer one and is preferred for that reason, but it is *not* more secure: 153 of the 168 narrowed
+ * rows are http, and 1358 of all 1568. An earlier assumption that getTeams solved mixed content was
+ * wrong. (Counts measured against the full capture, which is not in version control — see
+ * fixtures/riot-lol/rest_getTeams.meta.json. In the committed 71-row fixture it is 47 of 47.)
  *
  * Never warned per item: it is nearly every image in every response, and hundreds of identical
  * warnings would bury the one that matters.

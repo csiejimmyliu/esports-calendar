@@ -23,11 +23,13 @@ const leagueIdBySlug = new Map(
 );
 
 const leagueConfig = realLeagueConfig();
+// teamHomeLeagueSlugs, not majorSlugs — the same narrowing the adapter performs. See
+// src/config/leagues.ts: an international event must never define who the teams are.
 const teamIndex = buildTeamIndex(
   parseTeams(loadFixture('riot-lol/rest_getTeams.json')).items,
   new Set(
     leagueConfig
-      .majorSlugs()
+      .teamHomeLeagueSlugs()
       .map((slug) => parseLeagues(leagues, 'lol').items.find((l) => l.slug === slug)?.name)
       .filter((name): name is string => name !== undefined),
   ),

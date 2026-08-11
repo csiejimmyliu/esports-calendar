@@ -56,11 +56,15 @@ export interface SourceCapabilities {
   scopeDiscovery: 'implicit' | 'api' | 'manual';
 
   /**
-   * Supplies match state directly. BLAST's /matches has no state field at all — it must be
-   * inferred, or joined from /brackets.
+   * The state this adapter reports was **read**, not derived. BLAST's /matches has no state field
+   * at all, so anything it reports must be inferred or joined from /brackets.
    *
-   * True does not mean trustworthy: Riot REST supplies a state field and gets TBD playoff
-   * matches wrong. Correctness is reported per fetch via the `lossy-state` warning.
+   * Note that this is not "the source has a state field". Riot REST has one and `riot-rest-lol`
+   * still declares `false`, because the field is wrong for matches with an undecided opponent and
+   * the adapter overrides it from `result`. The flag describes the provenance of the value the sync
+   * layer receives; a field that exists but is corrected is an inference, and saying otherwise
+   * would invite the sync layer to trust it. The per-fetch `lossy-state` warning counts how many
+   * rows needed correcting, which is a different question from this one.
    */
   explicitState: boolean;
 

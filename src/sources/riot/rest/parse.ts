@@ -148,6 +148,7 @@ function parseEvent(
 
     if (opts.teamIndex !== undefined) {
       const resolution = resolveTeam(opts.teamIndex, {
+        name: t.name,
         code: t.code,
         leagueSlug: event.league.slug,
         tier,
@@ -159,19 +160,28 @@ function parseEvent(
           // The master table's image is the newer asset of the two. It is not the more secure one
           // — most of them are http as well, which is why toHttps still runs over it.
           logoUrl = resolution.team.logoUrl ?? logoUrl;
+          if (resolution.matchedBy === 'code') {
+            // Right answer, but the two endpoints no longer agree on this team's name. See the
+            // warning's own comment: this is notice before the next rebrand misses outright.
+            warn.warn(
+              'team-name-mismatch',
+              `${JSON.stringify(t.name)} in league ${event.league.slug} did not match any name in the master table; resolved by code ${JSON.stringify(t.code)} to ${JSON.stringify(resolution.team.name)}`,
+              { scheduleName: t.name, tableName: resolution.team.name, code: t.code },
+            );
+          }
           break;
         case 'unresolved':
           warn.warn(
             'team-unresolved',
-            `no team in the master table claims code ${JSON.stringify(t.code)} (${t.name}) seen in league ${event.league.slug}`,
+            `no team in the master table matches ${JSON.stringify(t.name)} by name or ${JSON.stringify(t.code)} by code, seen in league ${event.league.slug}`,
             { code: t.code, name: t.name, league: event.league.slug },
           );
           break;
         case 'ambiguous':
           warn.warn(
             'team-ambiguous',
-            `code ${JSON.stringify(t.code)} in league ${event.league.slug} is claimed by ${String(resolution.candidates.length)} teams and no override settles it; left unidentified rather than guessed`,
-            { code: t.code, candidates: resolution.candidates.map((c) => c.externalId) },
+            `${JSON.stringify(t.name)} / code ${JSON.stringify(t.code)} in league ${event.league.slug} is claimed by ${String(resolution.candidates.length)} teams and no override settles it; left unidentified rather than guessed`,
+            { name: t.name, code: t.code, candidates: resolution.candidates.map((c) => c.externalId) },
           );
           break;
         case 'out-of-scope':

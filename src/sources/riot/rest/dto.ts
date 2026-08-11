@@ -88,8 +88,10 @@ export const GetLeaguesResponse = z.object({
         name: z.string(),
         region: z.string().nullable().optional(),
         image: z.string().nullable().optional(),
-        // `priority` is 1 for all 45 leagues and `displayPriority` is per-request UI state.
-        // Both are read and both are ignored as tier signals. See lolesports-rest.md.
+        // `priority` and `displayPriority` are deliberately NOT declared, so zod strips them: they
+        // are never read, which is stronger than reading and ignoring them. `priority` is 1 for all
+        // 45 leagues and `displayPriority` is per-request UI state, so neither can carry a tier.
+        // Coverage is a product decision in config/leagues.json. See lolesports-rest.md.
       }),
     ),
   }),

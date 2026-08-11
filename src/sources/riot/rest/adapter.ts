@@ -1,14 +1,14 @@
 /**
- * riot-rest-lol — the first adapter.
+ * riot-rest-lol — the only adapter.
  *
- * Riot's REST API is the *secondary* source by design (docs/sources/lolesports-rest.md): the
- * GraphQL endpoint has correct match state and team ids, which this one does not. It is
- * implemented first because it needs only a public static key, whereas GraphQL needs a persisted
- * query hash tied to a frontend build that is recorded nowhere in this repo.
+ * This was drafted as the *secondary* source, with Riot's GraphQL endpoint as primary because it
+ * carries team ids and a trustworthy state field. Both reasons were then removed: `getTeams` supplies
+ * team ids outright, and `result == null` determines state exactly (7 of 7 unplayed matches, 0 of 73
+ * played ones, over the 2026-08-09 capture). GraphQL is off the roadmap — it needs a persisted query
+ * hash tied to a frontend build that this repo never recorded. See docs/sources/lolesports-rest.md.
  *
- * Its two known defects are declared, not hidden:
- *   - capabilities.teamIdentity = false     (no team ids anywhere in getSchedule)
- *   - a `lossy-state` warning per affected match (unplayed TBD playoff matches report completed)
+ * Its one known defect is declared, not hidden: a `lossy-state` warning per corrected match, because
+ * the state this adapter reports is inferred rather than read.
  */
 
 import type {
@@ -97,8 +97,17 @@ const CAPABILITIES: SourceCapabilities = {
   teamIdentity: true,
   // Riot supplies no streams at all. Settled; League.defaultStreamUrl is the answer.
   streamUrls: false,
-  // getSchedule's `pages` cursors are real and work.
-  timeWindow: true,
+  /**
+   * False, and this is about the adapter rather than the endpoint.
+   *
+   * getSchedule's `pages` cursors are real and work — `?leagueId=` returns full history and the
+   * cursors page through it. But `fetchMatches` sends no cursor and ignores its `window` argument
+   * entirely, so declaring `true` would be a lie the sync layer branches on: it would request a
+   * range and silently receive everything. The flag describes what this code does, not what the
+   * API could support. Historical backfill (SPEC: past schedule must be browsable) is the change
+   * that flips this, and it flips the implementation first.
+   */
+  timeWindow: false,
 };
 
 /** The one scope. `implicit`: nothing was enumerated, and no request was spent enumerating it. */
@@ -113,27 +122,75 @@ export const GLOBAL_SCOPE: Scope = {
 const CANARY_WINDOW_DAYS = 14;
 
 /**
- * The assertion that catches an empty parse.
+ * Why there is no "LCK has >= 1 match in the next 14 days" canary.
  *
- * Deliberately about one named league rather than "any matches at all". A global row count stays
- * healthy while LCK alone disappears — which is exactly what a slug typo or an upstream rename
- * produces, and it is invisible to any HTTP-level check.
+ * That was the shape SPEC originally proposed, and it is wrong for a seasonal sport. Measured over
+ * the 2026-08-09 capture: the three international majors (`worlds`, `msi`, `first_stand`) have zero
+ * matches in the window, which is their normal state for most of the year. Regional leagues have
+ * off-seasons and splits breaks too. A forward-looking per-league assertion therefore fires every
+ * winter, and a canary that cries wolf on schedule gets muted — after which the next real outage is
+ * silent. That is a worse failure than having no canary.
+ *
+ * So the two assertions below split the job:
+ *   1. a covered regional league vanishing from the feed entirely  — a slug break or a rename
+ *   2. the feed carrying nothing forward-looking at all            — a stale or empty parse
+ *
+ * Neither is about HTTP status. Both are about content, which is the whole point (SPEC §4).
  */
-export const lckHasUpcoming: SourceCanary = {
-  key: 'lck-has-upcoming',
-  description: `LCK has at least one match in the next ${String(CANARY_WINDOW_DAYS)} days`,
+
+/**
+ * Every regional league we cover appears somewhere in the fetched window.
+ *
+ * Presence, not upcoming-ness. `getSchedule` returns a window around now rather than only the
+ * future, so a league in a quiet week still shows its recently-played matches. A regional league
+ * absent from the whole window means the slug stopped matching — a rename upstream, or a typo in
+ * `config/leagues.json` — and a global row count stays perfectly healthy while it happens.
+ *
+ * International events are excluded by construction: `teamHomeLeagueSlugs()` is the regional subset.
+ * Asserting Worlds is present in August would be asserting a false thing.
+ */
+export function regionalLeaguesPresent(leagueConfig: LeagueConfig): SourceCanary {
+  const expected = leagueConfig.teamHomeLeagueSlugs();
+  return {
+    key: 'regional-leagues-present',
+    description: `every covered regional league appears in the feed (${expected.join(', ')})`,
+    scopeKey: GLOBAL_SCOPE.key,
+    check(matches) {
+      const seen = new Set(matches.map((m) => m.leagueSlug));
+      const missing = expected.filter((slug) => !seen.has(slug));
+      return {
+        ok: missing.length === 0,
+        detail:
+          missing.length === 0
+            ? `all ${String(expected.length)} regional leagues present`
+            : `absent from the feed: ${missing.join(', ')}`,
+      };
+    },
+  };
+}
+
+/**
+ * The feed carries at least one match starting in the next 14 days, in any covered league.
+ *
+ * Deliberately not per-league, so it survives an off-season. What it catches is the failure a status
+ * code cannot see: a parse that yields only stale rows, or none at all. Across eight leagues in five
+ * regions plus international events, a fortnight with nothing scheduled anywhere does not occur
+ * during a season — and if the whole calendar really is dark, that is worth a look regardless.
+ */
+export const scheduleHasUpcoming: SourceCanary = {
+  key: 'schedule-has-upcoming',
+  description: `at least one match in the next ${String(CANARY_WINDOW_DAYS)} days`,
   scopeKey: GLOBAL_SCOPE.key,
   check(matches, now) {
-    const until = addDays(now, CANARY_WINDOW_DAYS).getTime();
     const from = now.getTime();
+    const until = addDays(now, CANARY_WINDOW_DAYS).getTime();
     const hits = matches.filter((m) => {
-      if (m.leagueSlug !== 'lck') return false;
       const at = parseUtcInstant(m.startsAtUtc, 'match.startsAtUtc');
       return at >= from && at <= until;
     });
     return {
       ok: hits.length > 0,
-      detail: `${String(hits.length)} LCK match(es) in the next ${String(CANARY_WINDOW_DAYS)} days`,
+      detail: `${String(hits.length)} match(es) in the next ${String(CANARY_WINDOW_DAYS)} days`,
     };
   },
 };
@@ -151,7 +208,7 @@ export function createRiotRestLolAdapter(
     id: 'riot-rest-lol',
     game: 'lol',
     capabilities: CAPABILITIES,
-    canaries: [lckHasUpcoming],
+    canaries: [regionalLeaguesPresent(leagueConfig), scheduleHasUpcoming],
 
     listScopes(): Promise<FetchResult<Scope>> {
       // No request. The scope is a property of the endpoint, not something discovered from it.
@@ -201,8 +258,14 @@ export function createRiotRestLolAdapter(
        *
        * The index needs league *names*, not slugs: getTeams' only handle from a team to a league
        * is `homeLeague.name`, which is localized and carries neither slug nor id. So the config's
-       * major slugs are translated through getLeagues — and if getLeagues failed there is nothing
-       * to translate with, so identity degrades with it rather than silently narrowing to nothing.
+       * slugs are translated through getLeagues — and if getLeagues failed there is nothing to
+       * translate with, so identity degrades with it rather than silently narrowing to nothing.
+       *
+       * Note `teamHomeLeagueSlugs()` and not `majorSlugs()`. The two sets differ and conflating
+       * them is a bug: getTeams homes seven active rows at Worlds and MSI, none of which is a team
+       * that plays — five are 2011-era orgs and two are region placeholders named "LCS" and "VCS",
+       * carrying those codes. An international event needs its *matches* resolved; it must never
+       * define who the teams are. See src/config/leagues.ts.
        */
       let teamIndex: TeamIndex | undefined;
       if (leagueNameBySlug === undefined) {
@@ -218,22 +281,22 @@ export function createRiotRestLolAdapter(
           const parsed = parseTeams(teams.json);
           warn.absorb(parsed.warnings);
 
-          const majorNames = new Set<string>();
-          for (const slug of leagueConfig.majorSlugs()) {
+          const homeLeagueNames = new Set<string>();
+          for (const slug of leagueConfig.teamHomeLeagueSlugs()) {
             const name = leagueNameBySlug.get(slug);
             if (name === undefined) {
-              // A slug the config calls major that upstream no longer lists. Its teams cannot
-              // enter the table, so say so rather than quietly shipping a smaller one.
+              // A slug the config covers that upstream no longer lists. Its teams cannot enter the
+              // table, so say so rather than quietly shipping a smaller one.
               warn.warn(
                 'scope-list-stale',
-                `config/leagues.json marks ${JSON.stringify(slug)} major but getLeagues does not list it; its teams are absent from the team table`,
+                `config/leagues.json covers ${JSON.stringify(slug)} but getLeagues does not list it; its teams are absent from the team table`,
                 slug,
               );
               continue;
             }
-            majorNames.add(name);
+            homeLeagueNames.add(name);
           }
-          teamIndex = buildTeamIndex(parsed.items, majorNames);
+          teamIndex = buildTeamIndex(parsed.items, homeLeagueNames);
         } catch (err) {
           warn.warn(
             'degraded-fetch',

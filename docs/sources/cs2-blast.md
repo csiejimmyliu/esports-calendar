@@ -132,7 +132,11 @@ semantic canary is mandatory, not advisory.
 - **Timezone markers are inconsistent within one object**: `scheduledAt` is
   `"2026-08-02T10:30:00.000Z"`, but `tournament.startDate` is `"2026-07-21T12:00:00"` — **no Z**.
   Parse per field, never with one shared parser.
-- **No non-match events.** `metadata._t` was `"cs_match"` throughout. No `show` equivalent found.
+- **No non-match event was found.** `metadata._t` was `"cs_match"` throughout two tournaments across
+  both endpoints. That is absence-of-evidence over a small sample, not evidence of absence — the exact
+  pattern `valorant.md` names as its own lesson ("a fixture proves existence, never absence"). An
+  earlier heading here asserted "No non-match events", which claims more than two tournaments can
+  support. Enumerate `_t` and warn on an unknown value.
 - **Liquipedia cross-reference is built in**:
   ```json
   "metadata": { "references": { "liquipedia": { "teamName": "MOUZ", "pageId": 19674 } } }

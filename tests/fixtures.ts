@@ -21,12 +21,24 @@ export function realLeagueConfig(): LeagueConfig {
   );
 }
 
-/** A minimal tier table, for tests that are about the resolution rules and not about the file. */
+/**
+ * A minimal tier table, for tests that are about the resolution rules and not about the file.
+ *
+ * Majors default to `kind: 'region'` **here, in the test helper only** — the production loader
+ * refuses a major without an explicit kind, and that refusal is asserted separately. Defaulting in
+ * the helper keeps rule tests to one line; defaulting in the loader would let an international event
+ * quietly start contributing placeholder rows to the team table.
+ */
 export function testLeagueConfig(
-  leagues: { slug: string; tier: 'major' | 'minor' }[],
+  leagues: { slug: string; tier: 'major' | 'minor'; kind?: 'region' | 'event' }[],
   teamOverrides: { code: string; leagueSlug: string; teamId: string; reason: string }[] = [],
 ): LeagueConfig {
-  return createLeagueConfig({ leagues, teamOverrides });
+  return createLeagueConfig({
+    leagues: leagues.map((l) =>
+      l.tier === 'major' ? { kind: 'region' as const, ...l } : l,
+    ),
+    teamOverrides,
+  });
 }
 
 /** Build a getSchedule envelope around arbitrary events, for the synthetic edge cases. */

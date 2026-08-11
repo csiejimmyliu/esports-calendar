@@ -38,7 +38,17 @@ export type WarningCode =
   | 'unknown-match-state'
   /** A match whose participant count is not two. Skipped, not crashed on. */
   | 'non-binary-sides'
-  /** State was derived rather than read. BLAST has no state field on /matches at all. */
+  /**
+   * State was derived with no upstream field to derive it from. Not emitted by any current adapter:
+   * BLAST is the case it exists for, because /matches carries no state at all and the value has to
+   * come from /brackets or from the clock. Distinct from `lossy-state`, which means a field existed
+   * and was overridden — a reader of the two codes can tell "there was nothing to read" from "what
+   * we read was wrong", and those warrant different upstream trust.
+   *
+   * Kept as a declared code with no emitter because the vocabulary belongs to the interface rather
+   * than to whichever adapter happens to exist. Deleting it would mean re-deciding the distinction
+   * later, under time pressure, in the middle of writing a second adapter.
+   */
   | 'state-inferred'
   /**
    * The source reported a state we can prove is wrong, and the adapter overrode it. The count is
@@ -52,7 +62,18 @@ export type WarningCode =
   /** The source cannot identify teams, so nothing here can feed the team crosswalk. */
   | 'no-team-identity'
   /**
-   * A team appeared in a match we do classify, and no row in the team table claims its code.
+   * A team resolved by its fallback key rather than its primary one: the two endpoints disagree on
+   * the team's name, and only the code still matched.
+   *
+   * The identity is right — this is not an error. It is the early symptom of a rename that has
+   * propagated to one endpoint and not the other, and the interesting thing about it is what happens
+   * next: if the code changes too (rebrands usually change both), the next sync misses entirely. A
+   * warning here is days of notice before a `team-unresolved`.
+   */
+  | 'team-name-mismatch'
+  /**
+   * A team appeared in a match we do classify, and neither its name nor its code matches any row in
+   * the team table.
    * The match is kept and the name preserved — a calendar entry without a crosswalk id is still a
    * calendar entry, and dropping it would be a silent hole. Expected causes: a promoted team the
    * master table has not caught up with, a rename, or a tier list that has drifted.
@@ -76,9 +97,13 @@ export type WarningCode =
   /** A secondary request failed; the result is present but less complete than usual. */
   | 'degraded-fetch'
   /**
-   * A hand-maintained scope list may have gone stale. BLAST has no tournament-listing endpoint,
-   * so its scopes are typed by a human — and a missing new tournament is invisible by
-   * construction. Unused in Stage 0; the code exists because the failure does.
+   * A hand-maintained list may have gone stale. BLAST has no tournament-listing endpoint, so its
+   * scopes are typed by a human — and a missing new tournament is invisible by construction.
+   *
+   * `riot-rest-lol` emits it for the analogous case on its own hand-maintained list: a slug
+   * config/leagues.json covers that getLeagues no longer returns. Its teams then cannot enter the
+   * team table, and shipping a quietly smaller table is exactly the silent narrowing this code
+   * exists to prevent.
    */
   | 'scope-list-stale';
 

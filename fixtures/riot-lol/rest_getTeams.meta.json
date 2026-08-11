@@ -33,17 +33,56 @@
     "hl": "verified. Captured by an explicit request with hl=en-US; the response's homeLeague.region values are English (KOREA, INTERNATIONAL, ...), and getLeagues was confirmed on 2026-08-09 to return \"KOREA\" under en-US and \"韓國\" under zh-TW.",
     "capturedOn": "verified. Recorded from `date -u` at the moment of the request, not inferred afterwards.",
     "queryParams": "verified. hl is the only parameter sent; getTeams takes no others and returns the whole master table.",
-    "identityOfIds": "verified. getTeams id 99566404850008779 (Suzhou LNG Esports) and 99566404848691211 (Invictus Gaming) match rest_getEventDetails.json exactly, which in turn matches the suffix of the GraphQL composite id. Three endpoints agree.",
+    "identityOfIds": "cross-checked, n=2 teams. getTeams id 99566404850008779 (Suzhou LNG Esports) and 99566404848691211 (Invictus Gaming) match rest_getEventDetails.json exactly, and the first also matches the suffix of the GraphQL composite id. Three endpoints agree on one team and two on the other. Strong, but a four-cell table rather than a survey -- this field previously read \"verified\", which overstated it.",
     "byteIdenticalToPriorCapture": "The live capture was byte-identical (1542967 bytes, cmp clean) to an undocumented curl taken earlier the same day, so the trimmed content is unchanged by the re-capture. The re-capture exists to give this sidecar verified provenance rather than inferred provenance."
   },
+  "recapture": {
+    "command": "RIOT_API_KEY=<key> npm run capture -- getTeams fixtures/riot-lol/rest_getTeams_full",
+    "why": "The measurements below are taken on the full 1568-row response, which is not in version control (1.5 MB, gitignored). Before this command existed those figures could only be disclosed as unverifiable; now they can be re-derived. Re-capture, re-measure, then re-trim to this file.",
+    "afterCapture": "The full file must NOT be committed, and it still carries players[] -- do not commit it under any name."
+  },
   "measurements": {
-    "note": "Measured against the FULL 1568-row response, not this trimmed file. The trimmed file cannot support these figures and the tests do not assert them.",
+    "note": "Measured against the FULL 1568-row response, not this trimmed file. The trimmed file cannot support these figures and the tests do not assert them. Re-derive with the recapture command above rather than trusting them.",
+    "measuredOn": "2026-08-09 capture; team-table figures re-measured 2026-08-11 after coverage narrowed to eight leagues",
     "statusCounts": { "active": 1176, "archived": 392 },
     "activeWithNullHomeLeague": 486,
-    "teamTableSize": 290,
-    "teamTableFilter": "status == active AND homeLeague.name in the 14 major leagues of config/leagues.json",
-    "collidingCodesInTable": 1,
-    "collidingCodes": ["EG"],
-    "httpImagesInTable": 271
+    "collisionsByCandidateSet": {
+      "note": "Re-measured 2026-08-11 while choosing the join key. An earlier version of this file recorded 27 colliding codes among all active rows; that was wrong -- 46 codes collide, and 27 is the count of collisions involving an academy squad. Nothing could catch it because the full response is not committed and no test asserts it.",
+      "allRows": { "rows": 1568, "byCode": 97, "byName": 49 },
+      "activeOnly": { "rows": 1176, "byCode": 46, "byName": 15 },
+      "activeWithHomeLeague": { "rows": 690, "byCode": 16, "byName": 1 },
+      "narrowedToCoveredRegional": { "rows": 168, "byCode": 1, "byName": 0 },
+      "ofTheActiveCodeCollisions": "27 of the 46 are a first team and its own Challengers/Academy/Youth squad, because a code names the ORGANISATION rather than the squad. This is why the join key is name."
+    },
+    "teamTable": {
+      "filter": "status == active AND homeLeague.name in teamHomeLeagueSlugs() -- the covered REGIONAL leagues only (lck, lpl, lec, lcs, lcp). NOT majorSlugs(): the three international events must not define who the teams are.",
+      "size": 168,
+      "joinKey": "name (trimmed, lower-cased); code is the fallback and a fallback hit raises team-name-mismatch",
+      "distinctNames": 168,
+      "collidingNames": [],
+      "distinctCodes": 167,
+      "collidingCodes": ["EG"],
+      "httpImages": 153,
+      "namesWithTrailingWhitespaceInFullCapture": 6
+    },
+    "ifInternationalEventsWereIncluded": {
+      "size": 175,
+      "extraRows": 7,
+      "note": "Five 2011-era orgs homed at Worlds (EPIK, GDEE, AAA, PCFC, XAN) plus two region placeholder entities homed at MSI whose codes are literally LCS and VCS. No collision results today, which is why this had to be measured rather than assumed."
+    },
+    "supersededByCoverageChange": {
+      "size": 290,
+      "httpImages": 271,
+      "filter": "the 14 major leagues of config/leagues.json before 2026-08-11",
+      "note": "Kept so that figures quoted from older drafts can be traced rather than looking like errors."
+    },
+    "inThisTrimmedFile": {
+      "note": "What the committed 71 rows can actually support, and what the tests assert.",
+      "teamTableSize": 47,
+      "distinctCodes": 46,
+      "collidingCodes": ["EG"],
+      "httpImages": 47,
+      "activeRowsHomedAtAnInternationalEvent": 0
+    }
   }
 }

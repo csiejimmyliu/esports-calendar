@@ -28,8 +28,13 @@ import {
 import type { RiotRestTransport } from '../sources/riot/rest/adapter.js';
 import { formatMatchLine, parseArgs, selectUpcoming, tallyResolution } from './format.js';
 
-// Public, static, already committed to .env.example. Overridable via env.
-const DEFAULT_API_KEY = '0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z';
+/**
+ * The key lives in .env.example and nowhere else in the tree.
+ *
+ * It is the key lolesports.com ships to every browser, so this is not a secrecy measure — it is a
+ * consistency one. The fixture sidecars redact it, and a value hardcoded here made the redaction
+ * theatre while also meaning a rotated key requires a code change instead of an env change.
+ */
 const DEFAULT_USER_AGENT = 'esports-calendar/0.1 (+https://github.com/csiejimmyliu/esports-calendar)';
 
 const readJson = async (url: URL): Promise<unknown> => JSON.parse(await readFile(url, 'utf8'));
@@ -68,14 +73,23 @@ async function main(): Promise<number> {
     );
   }
 
-  const transport = args.live
-    ? httpTransport(
-        new RiotRestClient({
-          apiKey: process.env['RIOT_ESPORTS_API_KEY'] ?? DEFAULT_API_KEY,
-          userAgent: process.env['HTTP_USER_AGENT'] ?? DEFAULT_USER_AGENT,
-        }),
-      )
-    : await loadFixtureTransport(args.fixture);
+  let transport;
+  if (args.live) {
+    const apiKey = process.env['RIOT_ESPORTS_API_KEY'];
+    if (apiKey === undefined || apiKey === '') {
+      // Only --live needs it. Failing here rather than falling back keeps the key out of the tree.
+      process.stderr.write('RIOT_ESPORTS_API_KEY is not set; see .env.example\n');
+      return 2;
+    }
+    transport = httpTransport(
+      new RiotRestClient({
+        apiKey,
+        userAgent: process.env['HTTP_USER_AGENT'] ?? DEFAULT_USER_AGENT,
+      }),
+    );
+  } else {
+    transport = await loadFixtureTransport(args.fixture);
+  }
 
   const adapter = createRiotRestLolAdapter(transport, await loadLeagueConfig());
   const result = await adapter.fetchMatches(GLOBAL_SCOPE);
@@ -100,7 +114,9 @@ async function main(): Promise<number> {
   for (const w of result.warnings) process.stderr.write(`${formatWarning(w)}\n`);
 
   // Semantic canaries: content assertions, not liveness checks. A source returning 200 with rows
-  // that do not include LCK is a failure an HTTP-level check cannot see.
+  // that omit a whole covered league is a failure an HTTP-level check cannot see. Note that neither
+  // canary asserts a *named* league has upcoming matches — that shape fires every off-season. See
+  // the commentary above regionalLeaguesPresent in the adapter.
   let failed = false;
   for (const canary of adapter.canaries) {
     const verdict = canary.check(result.items, now);
