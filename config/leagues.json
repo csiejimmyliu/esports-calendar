@@ -1,0 +1,103 @@
+{
+  "$schema": "see src/config/leagues.ts",
+  "$why": [
+    "There is no machine-readable tier signal in Riot's API and there cannot be one derived from it.",
+    "getLeagues.priority is 1 for all 45 leagues. displayPriority is per-request UI state, not a",
+    "league property. And the lolesports.com site filters ABOVE the API: KeSPA Cup is returned by",
+    "getLeagues with displayPriority.status 'not_selected' yet is absent from the site's league",
+    "filter entirely, so 'not_selected' does not mean 'shown but unticked'. The site's filter layer",
+    "is not exposed. This list is therefore transcribed by hand from the site, which is precisely",
+    "why it is a config file and not a constant in code.",
+    "",
+    "An explicit 'minor' and an absent slug are different states. Absent means a league appeared",
+    "upstream after this file was last reviewed: it resolves to 'unclassified' and warns. Three",
+    "leagues appeared during 2026 alone (ewc_lol, cacg, fls), so that path is load-bearing.",
+    "",
+    "Tier gates two things, not one: which teams enter the team table, and which matches have their",
+    "teams resolved at all. Both are required. Resolving a minor league's matches against a",
+    "major-only table silently attaches main-roster ids to academy teams -- eleven such cases exist",
+    "in fixtures/riot-lol/rest_getSchedule.json alone."
+  ],
+  "capturedFrom": "getLeagues hl=en-US, 45 leagues, reviewed 2026-08-09",
+  "leagues": [
+    { "slug": "lck", "tier": "major" },
+    { "slug": "lpl", "tier": "major" },
+    { "slug": "lec", "tier": "major" },
+    { "slug": "lcs", "tier": "major" },
+    { "slug": "lcp", "tier": "major" },
+    { "slug": "cblol-brazil", "tier": "major" },
+    { "slug": "lla", "tier": "major" },
+    { "slug": "ljl-japan", "tier": "major" },
+    { "slug": "pcs", "tier": "major" },
+    { "slug": "vcs", "tier": "major" },
+    { "slug": "worlds", "tier": "major" },
+    { "slug": "msi", "tier": "major" },
+    { "slug": "first_stand", "tier": "major" },
+    { "slug": "ewc_lol", "tier": "major" },
+
+    {
+      "slug": "kespa_cup",
+      "tier": "minor",
+      "note": "Excluded as a product decision, not an API gap. It is present in getLeagues and there is a KeSPA Cup match in rest_getSchedule.json -- it is in fact the lossy-state example, a 2026-08-10 match reported as completed. It is absent from the lolesports.com league filter, so it is out of the product's scope. Recorded explicitly so that a future reader does not mistake its absence for an oversight."
+    },
+    {
+      "slug": "lck_challengers_league",
+      "tier": "minor",
+      "note": "Second teams. Its rosters share codes with the main LCK teams (DK, KT, HLE, NS, BFX, KRX, DNS), which is the reason match resolution is gated on tier rather than only the team table."
+    },
+    {
+      "slug": "tft_esports",
+      "tier": "minor",
+      "note": "A different game entirely; getLeagues returns it on the LoL path."
+    },
+
+    { "slug": "americas_cup", "tier": "minor" },
+    { "slug": "cacg", "tier": "minor" },
+    { "slug": "nacl", "tier": "minor" },
+    { "slug": "emea_masters", "tier": "minor" },
+    { "slug": "turkiye-sampiyonluk-ligi", "tier": "minor" },
+    { "slug": "nlc", "tier": "minor" },
+    { "slug": "lfl", "tier": "minor" },
+    { "slug": "roadoflegends", "tier": "minor" },
+    { "slug": "liga_portuguesa", "tier": "minor" },
+    { "slug": "lit", "tier": "minor" },
+    { "slug": "rift_legends", "tier": "minor" },
+    { "slug": "les", "tier": "minor" },
+    { "slug": "primeleague", "tier": "minor" },
+    { "slug": "hitpoint_masters", "tier": "minor" },
+    { "slug": "esports_balkan_league", "tier": "minor" },
+    { "slug": "hellenic_legends_league", "tier": "minor" },
+    { "slug": "arabian_league", "tier": "minor" },
+    { "slug": "cd", "tier": "minor" },
+    { "slug": "north_regional_league", "tier": "minor" },
+    { "slug": "south_regional_league", "tier": "minor" },
+    { "slug": "fls", "tier": "minor" },
+    { "slug": "lta_cross", "tier": "minor" },
+    { "slug": "lco", "tier": "minor" },
+    { "slug": "wqs", "tier": "minor" },
+    { "slug": "duelo_de_reyes", "tier": "minor" },
+    { "slug": "lta_n", "tier": "minor" },
+    { "slug": "lta_s", "tier": "minor" },
+    { "slug": "lcl", "tier": "minor" }
+  ],
+  "$teamOverridesWhy": [
+    "The config-file form of SPEC external_ref.manualOverride. Keyed on the MATCH's league slug,",
+    "not the team's home league: EG at an lcs match is the LCS org and EG at a lec match is the",
+    "EU one. An EG appearance at an international event matches no override, stays ambiguous, and",
+    "warns -- which is the correct outcome, because nothing in the response can decide it."
+  ],
+  "teamOverrides": [
+    {
+      "code": "EG",
+      "leagueSlug": "lcs",
+      "teamId": "103461966951059521",
+      "reason": "Evil Geniuses LG (LCS). The only colliding code in the 290-row team table, and the only collision not explained by a second team: both EG orgs are first teams in major leagues, so no automatic rule can separate them."
+    },
+    {
+      "code": "EG",
+      "leagueSlug": "lec",
+      "teamId": "109218871531830908",
+      "reason": "Evil Geniuses EU (LEC). See above."
+    }
+  ]
+}

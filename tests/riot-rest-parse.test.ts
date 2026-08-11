@@ -12,7 +12,8 @@ import { describe, expect, it } from 'vitest';
 import { parseLeagues, parseSchedule } from '../src/sources/riot/rest/parse.js';
 import type { SourceMatch } from '../src/core/types.js';
 import type { WarningCode } from '../src/core/warnings.js';
-import { loadFixture, matchEvent, scheduleEnvelope } from './fixtures.js';
+import { buildTeamIndex, parseTeams } from '../src/sources/riot/rest/teams.js';
+import { loadFixture, matchEvent, realLeagueConfig, scheduleEnvelope } from './fixtures.js';
 
 const schedule = loadFixture('riot-lol/rest_getSchedule.json');
 const leagues = loadFixture('riot-lol/rest_getLeagues.json');
@@ -21,8 +22,19 @@ const leagueIdBySlug = new Map(
   parseLeagues(leagues, 'lol').items.map((l) => [l.slug, l.externalId]),
 );
 
+const leagueConfig = realLeagueConfig();
+const teamIndex = buildTeamIndex(
+  parseTeams(loadFixture('riot-lol/rest_getTeams.json')).items,
+  new Set(
+    leagueConfig
+      .majorSlugs()
+      .map((slug) => parseLeagues(leagues, 'lol').items.find((l) => l.slug === slug)?.name)
+      .filter((name): name is string => name !== undefined),
+  ),
+);
+
 function parse(raw: unknown): ReturnType<typeof parseSchedule> {
-  return parseSchedule(raw, { game: 'lol', leagueIdBySlug });
+  return parseSchedule(raw, { game: 'lol', leagueIdBySlug, leagueConfig, teamIndex });
 }
 
 function codes(warnings: { code: WarningCode }[]): WarningCode[] {
@@ -80,10 +92,19 @@ describe('parseSchedule against the golden fixture', () => {
     expect(logos.every((url) => url?.startsWith('https://'))).toBe(true);
   });
 
-  it('reports that this endpoint cannot identify teams', () => {
-    // 80 events, 80 ids, none of them a team's — so no row here can feed the crosswalk.
-    expect(result.items.every((m) => m.sides.every((s) => s.team === null || s.team.externalId === null))).toBe(true);
-    expect(countOf(result.warnings, 'no-team-identity')).toBe(1);
+  it('reports no team identity only when the master table is missing', () => {
+    // Until Stage 0.5 this was unconditional: getSchedule alone has 80 events, 80 ids, and none of
+    // them a team's. With the getTeams join supplied the warning must be silent, or it becomes a
+    // line every sync run prints and nobody reads.
+    expect(countOf(result.warnings, 'no-team-identity')).toBe(0);
+
+    const withoutTeams = parseSchedule(schedule, { game: 'lol', leagueIdBySlug, leagueConfig });
+    expect(countOf(withoutTeams.warnings, 'no-team-identity')).toBe(1);
+    expect(
+      withoutTeams.items.every((m) => m.sides.every((s) => s.team === null || s.team.externalId === null)),
+    ).toBe(true);
+    // and the matches are all still there
+    expect(withoutTeams.items).toHaveLength(80);
   });
 
   it('never invents a stream URL', () => {

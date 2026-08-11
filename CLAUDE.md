@@ -1,8 +1,13 @@
 # CLAUDE.md
 
-Cross-title esports match calendar. Users follow leagues and teams; matches appear in a web
+League of Legends esports match calendar. Users follow leagues and teams; matches appear in a web
 calendar, an ICS feed, and later a native iOS app, with stream links and pre-match notifications.
-League of Legends is the first title implemented — it is not the product.
+The target: every match lolesports.com shows, in one subscribable calendar.
+
+**LoL only, decided 2026-08-09.** VALORANT and CS2 adapters are off the roadmap. The cross-title
+*design* stays — `SourceCapabilities`, the `game` field, optional `league`, the two-phase scope
+shape, and all four notes in `docs/sources/`. Keeping them costs nothing and they are why the
+interface is not a transcription of Riot's response shape. See SPEC §0.
 
 **Read `docs/SPEC.md` before planning anything.** It is the source of truth. If your plan
 contradicts it, say so explicitly rather than silently deviating.
@@ -35,6 +40,17 @@ contradicts it, say so explicitly rather than silently deviating.
   it and what the client actually sends is invisible — `rest_getSchedule.json` was captured under
   `hl=zh-TW` while the client pins `hl=en-US`, and nothing surfaced that until a sidecar was
   written. State plainly which fields were verified and which were inferred.
+- **Fixtures are verbatim, with exactly one exception.** A field that SPEC explicitly excludes as
+  personal data may be removed; the sidecar must then say `verbatim-except-<fields>` and record the
+  before/after row counts. The verbatim rule protects test fidelity, and dropping a field the
+  parser is required to discard costs none — whereas real players' names in a public repo that
+  says it does not collect player data is a substantive problem. `getTeams` carries a `players`
+  roster per team and is the first case. This is not licence to trim inconvenient fields.
+- **Team identity is a narrowed join, not a lookup.** Riot names teams in `getSchedule` and
+  identifies them in `getTeams`; they are joined by `code`. Unnarrowed, 27 codes collide. Narrowing
+  the team table to major leagues is necessary and *not sufficient* — resolution must also be gated
+  on the tier of the league the match is played in, or academy squads inherit their parent's id
+  (11 such sides in one captured day). An ambiguous code resolves to nothing and warns.
 - **Semantic canaries, not liveness checks.** Scrapers fail by returning HTTP 200 with zero rows.
   Health checks must assert content ("LCK has ≥1 match in the next 14 days"), not status codes.
   Confirmed in the wild: BLAST returns 200 + `[]` for an unknown tournament slug, indistinguishable
@@ -82,10 +98,14 @@ not bound by it.
 
 ## Read before designing anything
 
-`docs/sources/lolesports.md`, `lolesports-rest.md`, `valorant.md`, `cs2-blast.md`. Three real
-sources were probed to shape the interface. `src/core/source.ts` is a **draft** — challenging it
-against those notes is Stage 0's job, and a place it does not fit is a finding to report, not an
-obstacle to work around.
+`docs/sources/lolesports-rest.md` first — it is the only source now implemented, and it is where
+the `getTeams` join, the `result`-over-`state` correction, and the `displayPriority` correction
+live. `lolesports.md`, `valorant.md`, and `cs2-blast.md` are kept as the evidence that shaped the
+interface, not as pending work.
+
+`src/core/source.ts` is **final for Stage 0**, no longer a draft. `config/leagues.json` is the
+hand-maintained tier table and the manual team overrides; it cannot be derived from the API and
+changes on a product decision.
 
 ## Stack
 

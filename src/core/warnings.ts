@@ -25,6 +25,12 @@ export type WarningCode =
    */
   | 'unknown-event-type'
   /**
+   * A team-lifecycle value outside the set we know. Only `active` and `archived` appear across all
+   * 1568 rows of the master table, which proves neither is the last one Riot will invent. An
+   * unknown status fails the `active` test and simply keeps that team out of the table.
+   */
+  | 'unknown-team-status'
+  /**
    * A state value outside the set we know how to map. Treated as `unstarted`, which is the
    * spoiler-safe direction (FR-3): guessing "upcoming" reveals nothing, guessing "completed"
    * would let a UI decide the match is worth a score.
@@ -45,6 +51,26 @@ export type WarningCode =
   | 'lossy-state'
   /** The source cannot identify teams, so nothing here can feed the team crosswalk. */
   | 'no-team-identity'
+  /**
+   * A team appeared in a match we do classify, and no row in the team table claims its code.
+   * The match is kept and the name preserved — a calendar entry without a crosswalk id is still a
+   * calendar entry, and dropping it would be a silent hole. Expected causes: a promoted team the
+   * master table has not caught up with, a rename, or a tier list that has drifted.
+   */
+  | 'team-unresolved'
+  /**
+   * Two teams in the table claim one code and no manual override settles it. Resolving nothing is
+   * the required outcome: picking either one attaches a real, wrong identity to a real match, and
+   * every downstream subscription then silently follows the wrong team. Confirmed live: EG is
+   * Evil Geniuses LG in LCS and Evil Geniuses EU in LEC, both first teams in major leagues.
+   */
+  | 'team-ambiguous'
+  /**
+   * A league slug that config/leagues.json does not mention at all. Not the same as an explicit
+   * `minor`: this is a league that appeared upstream after the file was last reviewed, and three
+   * did during 2026 alone. Its matches are treated as out of scope, loudly.
+   */
+  | 'unclassified-league'
   /** One item failed validation. The rest of the batch survives — partial failure isolation. */
   | 'unparsable-item'
   /** A secondary request failed; the result is present but less complete than usual. */

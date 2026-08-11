@@ -1,0 +1,997 @@
+{
+  "data": {
+    "teams": [
+      {
+        "id": "100205572995797818",
+        "slug": "tbd",
+        "name": "TBD",
+        "code": "TBDD",
+        "image": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/tbd-awibzy0k.png",
+        "alternativeImage": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/tbd-frpypqn6.png",
+        "backgroundImage": null,
+        "status": "archived",
+        "homeLeague": {
+          "name": "MSI",
+          "region": "INTERNATIONAL"
+        }
+      },
+      {
+        "id": "100205573495116443",
+        "slug": "geng",
+        "name": "Gen.G Esports",
+        "code": "GEN",
+        "image": "http://static.lolesports.com/teams/1773829250929_GENGLOGO_GOLD.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1773829250929_GENGLOGO_GOLD.png",
+        "backgroundImage": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/geng-bnm75bf5.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LCK",
+          "region": "KOREA"
+        }
+      },
+      {
+        "id": "100205573496804586",
+        "slug": "hanwha-life-esports",
+        "name": "Hanwha Life Esports",
+        "code": "HLE",
+        "image": "http://static.lolesports.com/teams/1631819564399_hle-2021-worlds.png",
+        "alternativeImage": "http://static.lolesports.com/teams/hle-2021-color-on-light2.png",
+        "backgroundImage": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/hanwha-life-esports-7kh5kjdc.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LCK",
+          "region": "KOREA"
+        }
+      },
+      {
+        "id": "100205576309502431",
+        "slug": "furia",
+        "name": "FURIA",
+        "code": "FUR",
+        "image": "http://static.lolesports.com/teams/FURIA---black.png",
+        "alternativeImage": "http://static.lolesports.com/teams/FURIA---black.png",
+        "backgroundImage": "http://static.lolesports.com/teams/FuriaUppercutFUR.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "CBLOL",
+          "region": "BRAZIL"
+        }
+      },
+      {
+        "id": "100285330168091787",
+        "slug": "detonation-focusme",
+        "name": "DetonatioN FocusMe",
+        "code": "DFM",
+        "image": "http://static.lolesports.com/teams/1673415140442_dfm.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1673415140445_dfm.png",
+        "backgroundImage": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/detonation-focusme-4pgp383l.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LCP",
+          "region": "PACIFIC"
+        }
+      },
+      {
+        "id": "100725845018863243",
+        "slug": "dwg-kia",
+        "name": "Dplus KIA",
+        "code": "DK",
+        "image": "http://static.lolesports.com/teams/1673260049703_DPlusKIALOGO11.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1673260049704_DPlusKIALOGO2.png",
+        "backgroundImage": "http://static.lolesports.com/teams/DamwonGamingDWG.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LCK",
+          "region": "KOREA"
+        }
+      },
+      {
+        "id": "100725845022060229",
+        "slug": "fearx",
+        "name": "BNK FEARX",
+        "code": "BFX",
+        "image": "http://static.lolesports.com/teams/1734691810721_BFXfullcolorfordarkbg.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1734691810721_BFXfullcolorfordarkbg.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCK",
+          "region": "KOREA"
+        }
+      },
+      {
+        "id": "101157821444002947",
+        "slug": "nexus-blitz-pro-a",
+        "name": "Nexus Blitz Blue",
+        "code": "NXB",
+        "image": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/nexus-blitz-pro-a-esrcx58b.png",
+        "alternativeImage": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/nexus-blitz-pro-a-3w3j1cwx.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": null
+      },
+      {
+        "id": "101383793567806688",
+        "slug": "sk-gaming",
+        "name": "SK Gaming",
+        "code": "SK",
+        "image": "http://static.lolesports.com/teams/1643979272144_SK_Monochrome.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1643979272151_SK_Monochrome.png",
+        "backgroundImage": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/sk-gaming-2cd63tzz.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LEC",
+          "region": "EMEA"
+        }
+      },
+      {
+        "id": "101383793572656373",
+        "slug": "giantx-lec",
+        "name": "GIANTX",
+        "code": "GX",
+        "image": "http://static.lolesports.com/teams/1765897105091_GIANTX-logotype-white.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1765897105092_GIANTX-logotype-white.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LEC",
+          "region": "EMEA"
+        }
+      },
+      {
+        "id": "101388912911039804",
+        "slug": "thunder-talk-gaming",
+        "name": "THUNDER TALK GAMING",
+        "code": "TT",
+        "image": "http://static.lolesports.com/teams/TT-FullonDark.png",
+        "alternativeImage": "http://static.lolesports.com/teams/TT-FullonLight.png",
+        "backgroundImage": "http://static.lolesports.com/teams/TTTT.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LPL",
+          "region": "CHINA"
+        }
+      },
+      {
+        "id": "102747101565183056",
+        "slug": "nongshim-redforce",
+        "name": "NONGSHIM RED FORCE",
+        "code": "NS",
+        "image": "http://static.lolesports.com/teams/NSFullonDark.png",
+        "alternativeImage": "http://static.lolesports.com/teams/NSFullonLight.png",
+        "backgroundImage": "http://static.lolesports.com/teams/NongshimRedForceNS.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LCK",
+          "region": "KOREA"
+        }
+      },
+      {
+        "id": "103461966951059521",
+        "slug": "evil-geniuses",
+        "name": "Evil Geniuses LG",
+        "code": "EG",
+        "image": "http://static.lolesports.com/teams/1592590374862_EvilGeniusesEG-01-FullonDark.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1592590374875_EvilGeniusesEG-03-FullonLight.png",
+        "backgroundImage": "http://static.lolesports.com/teams/1590003096057_EvilGeniusesEG.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LCS",
+          "region": "NORTH AMERICA"
+        }
+      },
+      {
+        "id": "103461966965149786",
+        "slug": "mad-lions",
+        "name": "Movistar KOI",
+        "code": "MKOI",
+        "image": "http://static.lolesports.com/teams/1734012609283_MKOI_FullColor_Blue.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1734012609284_MKOI_FullColor_Blue.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LEC",
+          "region": "EMEA"
+        }
+      },
+      {
+        "id": "105397404796640412",
+        "slug": "loud",
+        "name": "LOUD",
+        "code": "LOUD",
+        "image": "http://static.lolesports.com/teams/Logo-LOUD-Esports_Original.png",
+        "alternativeImage": "http://static.lolesports.com/teams/Logo-LOUD-Esports_Original.png",
+        "backgroundImage": "http://static.lolesports.com/teams/LOUDLLL.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "CBLOL",
+          "region": "BRAZIL"
+        }
+      },
+      {
+        "id": "105505619546859895",
+        "slug": "fredit-brion",
+        "name": "HANJIN BRION",
+        "code": "BRO",
+        "image": "http://static.lolesports.com/teams/1716454325887_Nowyprojekt.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1716454325888_Nowyprojekt.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCK",
+          "region": "KOREA"
+        }
+      },
+      {
+        "id": "105550026570060790",
+        "slug": "dwg-kia-challengers",
+        "name": "DK Challengers",
+        "code": "DK",
+        "image": "http://static.lolesports.com/teams/1673259409468_DPlusKIALOGO1.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1673259409471_DPlusKIALOGO.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCK Challengers",
+          "region": "KOREA"
+        }
+      },
+      {
+        "id": "105550047979361273",
+        "slug": "hle-challengers",
+        "name": "HLE Challengers",
+        "code": "HLE",
+        "image": "http://static.lolesports.com/teams/hle-2021-color-on-dark.png",
+        "alternativeImage": "http://static.lolesports.com/teams/hle-2021-color-on-light2.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCK Challengers",
+          "region": "KOREA"
+        }
+      },
+      {
+        "id": "105550049871017396",
+        "slug": "kt-challengers",
+        "name": "kt Challengers",
+        "code": "KT",
+        "image": "http://static.lolesports.com/teams/kt_darkbackground.png",
+        "alternativeImage": "http://static.lolesports.com/teams/kt_whitebackground.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCK Challengers",
+          "region": "KOREA"
+        }
+      },
+      {
+        "id": "107251245690956393",
+        "slug": "saigon-buffalo-esports",
+        "name": "MVK Esports",
+        "code": "MVK",
+        "image": "http://static.lolesports.com/teams/1767089709161_White_Logo.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1767089709161_Orange_Black_Logo.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCP",
+          "region": "PACIFIC"
+        }
+      },
+      {
+        "id": "107251295460371069",
+        "slug": "team-secret",
+        "name": "Team Secret",
+        "code": "TS",
+        "image": "http://static.lolesports.com/teams/1656693717651_TS.png",
+        "alternativeImage": null,
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "Esports World Cup",
+          "region": "INTERNATIONAL"
+        }
+      },
+      {
+        "id": "107563714667537640",
+        "slug": "team-bds",
+        "name": "Shifters",
+        "code": "SHFT",
+        "image": "http://static.lolesports.com/teams/1765897071435_600px-Shifters_allmode.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1765897071435_600px-Shifters_allmode.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LEC",
+          "region": "EMEA"
+        }
+      },
+      {
+        "id": "107598699275015260",
+        "slug": "leviatan-esports",
+        "name": "LEVIATÁN",
+        "code": "LEV",
+        "image": "http://static.lolesports.com/teams/1643795049372_LEV-CLAROWhite.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1643795049373_LEV-OSCUROBlack.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "CBLOL",
+          "region": "BRAZIL"
+        }
+      },
+      {
+        "id": "107700199633958891",
+        "slug": "ctbc-flying-oyster",
+        "name": "CTBC Flying Oyster",
+        "code": "CFO",
+        "image": "http://static.lolesports.com/teams/1656307849320_CFO_Logo.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1656307849321_CFO_Logo.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCP",
+          "region": "PACIFIC"
+        }
+      },
+      {
+        "id": "107700204561086446",
+        "slug": "deep-cross-gaming",
+        "name": "Relove Deep Cross Gaming",
+        "code": "DCG",
+        "image": "http://static.lolesports.com/teams/1785400397160_LCP_DCG_Full_W1.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1785400397161_LCP_DCG_Full_W1.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCP",
+          "region": "PACIFIC"
+        }
+      },
+      {
+        "id": "107760667929003738",
+        "slug": "frank-esports",
+        "name": "Frank Esports",
+        "code": "FAK",
+        "image": "http://static.lolesports.com/teams/1656308269827_220621_FRANK_Final_Logo_W.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1656308269828_220621_FRANK_Final_Logo_B.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "PCS",
+          "region": "HONG KONG, MACAU, TAIWAN"
+        }
+      },
+      {
+        "id": "109218871531830908",
+        "slug": "evil-geniuses-eu",
+        "name": "Evil Geniuses EU",
+        "code": "EG",
+        "image": "http://static.lolesports.com/teams/1666548171478_egsquare.png",
+        "alternativeImage": null,
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LEC",
+          "region": "EMEA"
+        }
+      },
+      {
+        "id": "109480056092207899",
+        "slug": "fluxo",
+        "name": "Fluxo W7M",
+        "code": "FX",
+        "image": "http://static.lolesports.com/teams/1766161431111_LogoColorida.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1766161431111_LogoColorida.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "CBLOL",
+          "region": "BRAZIL"
+        }
+      },
+      {
+        "id": "109480204628225868",
+        "slug": "los",
+        "name": "LOS",
+        "code": "LOS",
+        "image": "http://static.lolesports.com/teams/1784013312149_LOS-OLaranja.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1784013312149_LOS-OLaranja.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "CBLOL",
+          "region": "BRAZIL"
+        }
+      },
+      {
+        "id": "109637393694097670",
+        "slug": "team-heretics-lec",
+        "name": "Team Heretics",
+        "code": "TH",
+        "image": "http://static.lolesports.com/teams/1672933861879_Heretics-Full-Color.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1672933861879_Heretics-Full-Color.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LEC",
+          "region": "EMEA"
+        }
+      },
+      {
+        "id": "109675490370327425",
+        "slug": "ground-zero",
+        "name": "Ground Zero Gaming",
+        "code": "GZ",
+        "image": "http://static.lolesports.com/teams/1766395585595_LCP_TEAMLogo_GZ_Full_B.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1766395585596_LCP_TEAMLogo_GZ_Full_B.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCP",
+          "region": "PACIFIC"
+        }
+      },
+      {
+        "id": "110428362822825796",
+        "slug": "disguised",
+        "name": "Disguised",
+        "code": "DSG",
+        "image": "http://static.lolesports.com/teams/1731496922454_Disguised-Wordmark-Yellow-Main.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1731496922455_Disguised-Wordmark-Yellow-Main.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCS",
+          "region": "NORTH AMERICA"
+        }
+      },
+      {
+        "id": "111504538396430510",
+        "slug": "shopify-rebellion",
+        "name": "Shopify Rebellion",
+        "code": "SR",
+        "image": "http://static.lolesports.com/teams/1701424227458_Teams204_Shopify_1632869404072.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1701424227460_Shopify_Rebellion_2021_lightmode.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCS",
+          "region": "NORTH AMERICA"
+        }
+      },
+      {
+        "id": "111692118851466302",
+        "slug": "karmine-corp",
+        "name": "Karmine Corp",
+        "code": "KC",
+        "image": "http://static.lolesports.com/teams/1704714951336_KC.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1704714951337_KC.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LEC",
+          "region": "EMEA"
+        }
+      },
+      {
+        "id": "113951569973088490",
+        "slug": "ctbc-flying-oyster-academy",
+        "name": "CTBC Flying Oyster Academy",
+        "code": "CFOA",
+        "image": "http://static.lolesports.com/teams/1738762962228_1000_CFOA-FlyingOyster.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1738762962229_1000_CFOA-FlyingOyster.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "PCS",
+          "region": "HONG KONG, MACAU, TAIWAN"
+        }
+      },
+      {
+        "id": "114868016111590239",
+        "slug": "natus-vincere",
+        "name": "Natus Vincere",
+        "code": "NAVI",
+        "image": "http://static.lolesports.com/teams/1752746833620_NAVI_FullColor.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1752746833620_NAVI_FullColor.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LEC",
+          "region": "EMEA"
+        }
+      },
+      {
+        "id": "115688562107799886",
+        "slug": "sentinels",
+        "name": "Sentinels",
+        "code": "SEN",
+        "image": "http://static.lolesports.com/teams/1767769784669_Sentinels_2020_Icon.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1767769784670_Sentinels_2020_Icon.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCS",
+          "region": "NORTH AMERICA"
+        }
+      },
+      {
+        "id": "116046715496396520",
+        "slug": "l-guide-gaming",
+        "name": "L Guide Gaming",
+        "code": "LGG",
+        "image": "http://static.lolesports.com/teams/1771324562336_lgg_full_color_onW.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1771324562336_lgg_full_color_onW.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LJL",
+          "region": "JAPAN"
+        }
+      },
+      {
+        "id": "116046738539653197",
+        "slug": "uwinks",
+        "name": "UWinks",
+        "code": "UWS",
+        "image": "http://static.lolesports.com/teams/1771324707957_uw_full_color_onW.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1771324707958_uw_full_color_onW.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LJL",
+          "region": "JAPAN"
+        }
+      },
+      {
+        "id": "116432032495413501",
+        "slug": "sillysilly-gaming",
+        "name": "SillySilly Gaming",
+        "code": "SSG",
+        "image": "http://static.lolesports.com/teams/1776611820872_PCS2026_TeamLogo_SSG.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1776611820872_PCS2026_TeamLogo_SSG.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "PCS",
+          "region": "HONG KONG, MACAU, TAIWAN"
+        }
+      },
+      {
+        "id": "116432043586042764",
+        "slug": "gz-academy",
+        "name": "GZ Academy",
+        "code": "GZA",
+        "image": "http://static.lolesports.com/teams/1776611990170_PCS2026_TeamLogo_GZ.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1776611990170_PCS2026_TeamLogo_GZ.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "PCS",
+          "region": "HONG KONG, MACAU, TAIWAN"
+        }
+      },
+      {
+        "id": "116988203842306891",
+        "slug": "embrace-whatever-happens",
+        "name": "Embrace Whatever Happens",
+        "code": "EWH",
+        "image": "http://static.lolesports.com/teams/1785098318980_ewh-Photoroom.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1785098318981_ewh-Photoroom.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "PCS",
+          "region": "HONG KONG, MACAU, TAIWAN"
+        }
+      },
+      {
+        "id": "116988207170900793",
+        "slug": "rogersama",
+        "name": "RogerSaMa",
+        "code": "RSM",
+        "image": "http://static.lolesports.com/teams/1785098374028_rsm-Photoroom.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1785098374028_rsm-Photoroom.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "PCS",
+          "region": "HONG KONG, MACAU, TAIWAN"
+        }
+      },
+      {
+        "id": "116988210286068561",
+        "slug": "sponge-gaming",
+        "name": "Sponge Gaming",
+        "code": "SG7",
+        "image": "http://static.lolesports.com/teams/1785098422022_spg.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1785098422023_spg.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "PCS",
+          "region": "HONG KONG, MACAU, TAIWAN"
+        }
+      },
+      {
+        "id": "116988213569765510",
+        "slug": "reignfall",
+        "name": "Reignfall",
+        "code": "RNF",
+        "image": "http://static.lolesports.com/teams/1785307397756_PCS2026_TeamLogo_RNF1.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1785307397756_PCS2026_TeamLogo_RNF1.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "PCS",
+          "region": "HONG KONG, MACAU, TAIWAN"
+        }
+      },
+      {
+        "id": "98767991853197861",
+        "slug": "t1",
+        "name": "T1",
+        "code": "T1",
+        "image": "http://static.lolesports.com/teams/1726801573959_539px-T1_2019_full_allmode.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1726801573959_539px-T1_2019_full_allmode.png",
+        "backgroundImage": "http://static.lolesports.com/teams/1596305556675_T1T1.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LCK",
+          "region": "KOREA"
+        }
+      },
+      {
+        "id": "98767991866488695",
+        "slug": "fnatic",
+        "name": "Fnatic",
+        "code": "FNC",
+        "image": "http://static.lolesports.com/teams/1631819669150_fnc-2021-worlds.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1592591295310_FnaticFNC-03-FullonLight.png",
+        "backgroundImage": "http://static.lolesports.com/teams/1632941274242_FNC.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LEC",
+          "region": "EMEA"
+        }
+      },
+      {
+        "id": "98767991877340524",
+        "slug": "cloud9",
+        "name": "Cloud9 Kia",
+        "code": "C9",
+        "image": "http://static.lolesports.com/teams/1736924120254_C9Kia_IconBlue_Transparent_2000x2000.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1736924120255_C9Kia_IconBlue_Transparent_2000x2000.png",
+        "backgroundImage": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/cloud9-9vnfum22.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LCS",
+          "region": "NORTH AMERICA"
+        }
+      },
+      {
+        "id": "98767991882270868",
+        "slug": "edward-gaming",
+        "name": "EDWARD GAMING",
+        "code": "EDG",
+        "image": "http://static.lolesports.com/teams/1631819297476_edg-2021-worlds.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1694151726921_logo-edg.png",
+        "backgroundImage": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/edward-gaming-2ko31fn7.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LPL",
+          "region": "CHINA"
+        }
+      },
+      {
+        "id": "98767991887166787",
+        "slug": "team-we",
+        "name": "Xi'an Team WE",
+        "code": "WE",
+        "image": "http://static.lolesports.com/teams/1634763008788_220px-Team_WE_logo.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1634763008788_220px-Team_WE_logo.png",
+        "backgroundImage": "http://static.lolesports.com/teams/1634763008789_Team_WElogo_profile.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LPL",
+          "region": "CHINA"
+        }
+      },
+      {
+        "id": "98767991926151025",
+        "slug": "g2-esports",
+        "name": "G2 Esports",
+        "code": "G2",
+        "image": "http://static.lolesports.com/teams/G2-FullonDark.png",
+        "alternativeImage": "http://static.lolesports.com/teams/G2-FullonLight.png",
+        "backgroundImage": "http://static.lolesports.com/teams/G2.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LEC",
+          "region": "EMEA"
+        }
+      },
+      {
+        "id": "98767991954244555",
+        "slug": "gam-esports",
+        "name": "GAM Esports",
+        "code": "GAM",
+        "image": "http://static.lolesports.com/teams/1643263093448_GAMyellow.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1643263093449_GAMyellow.png",
+        "backgroundImage": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/gam-esports-6t9836to.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LCP",
+          "region": "PACIFIC"
+        }
+      },
+      {
+        "id": "98926509883054987",
+        "slug": "dignitas",
+        "name": "Dignitas",
+        "code": "DIG",
+        "image": "http://static.lolesports.com/teams/DIG-FullonDark.png",
+        "alternativeImage": "http://static.lolesports.com/teams/DIG-FullonLight.png",
+        "backgroundImage": "http://static.lolesports.com/teams/DignitasDIG.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LCS",
+          "region": "NORTH AMERICA"
+        }
+      },
+      {
+        "id": "98926509885559666",
+        "slug": "team-liquid",
+        "name": "Team Liquid Alienware",
+        "code": "TLAW",
+        "image": "http://static.lolesports.com/teams/1769357207762_TLAlienware_Minimal_Bug-White.png",
+        "alternativeImage": null,
+        "backgroundImage": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/team-liquid-4bj1d6p9.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LCS",
+          "region": "NORTH AMERICA"
+        }
+      },
+      {
+        "id": "98926509892121852",
+        "slug": "flyquest",
+        "name": "FlyQuest",
+        "code": "FLY",
+        "image": "http://static.lolesports.com/teams/flyquest-new-on-dark.png",
+        "alternativeImage": "http://static.lolesports.com/teams/flyquest-new-on-dark.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCS",
+          "region": "NORTH AMERICA"
+        }
+      },
+      {
+        "id": "99322214695067838",
+        "slug": "team-vitality",
+        "name": "Team Vitality",
+        "code": "VIT",
+        "image": "http://static.lolesports.com/teams/1675865863968_Vitality_FullColor.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1675865863970_Vitality_FullColor.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LEC",
+          "region": "EMEA"
+        }
+      },
+      {
+        "id": "99566404579461230",
+        "slug": "kt-rolster",
+        "name": "kt Rolster",
+        "code": "KT",
+        "image": "http://static.lolesports.com/teams/kt_darkbackground.png",
+        "alternativeImage": "http://static.lolesports.com/teams/kt_whitebackground.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCK",
+          "region": "KOREA"
+        }
+      },
+      {
+        "id": "99566404581868574",
+        "slug": "kwangdong-freecs",
+        "name": "DN SOOPers",
+        "code": "DNS",
+        "image": "http://static.lolesports.com/teams/1767340467921_DN_SOOPerslogo_profile.webp",
+        "alternativeImage": "http://static.lolesports.com/teams/1767340467922_DN_SOOPerslogo_profile.webp",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCK",
+          "region": "KOREA"
+        }
+      },
+      {
+        "id": "99566404585387054",
+        "slug": "drx",
+        "name": "KIWOOM DRX",
+        "code": "KRX",
+        "image": "http://static.lolesports.com/teams/1774247803537_horizontal_EN_Wh.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1774247803537_horizontal_EN_C.png",
+        "backgroundImage": "http://static.lolesports.com/teams/1596305602300_DragonXDRX.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LCK",
+          "region": "KOREA"
+        }
+      },
+      {
+        "id": "99566404846951820",
+        "slug": "lgd-gaming",
+        "name": "LGD GAMING",
+        "code": "LGD",
+        "image": "http://static.lolesports.com/teams/LGD-FullonDark-1.png",
+        "alternativeImage": "http://static.lolesports.com/teams/LGD-FullonLight-1.png",
+        "backgroundImage": "http://static.lolesports.com/teams/LGDGamingLGD.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LPL",
+          "region": "CHINA"
+        }
+      },
+      {
+        "id": "99566404848691211",
+        "slug": "invictus-gaming",
+        "name": "Invictus Gaming",
+        "code": "IG",
+        "image": "http://static.lolesports.com/teams/1634762917340_300px-Invictus_Gaming_logo.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1592591780362_InvictusGamingIG-03-FullonLight.png",
+        "backgroundImage": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/invictus-gaming-ijpwreew.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LPL",
+          "region": "CHINA"
+        }
+      },
+      {
+        "id": "99566404850008779",
+        "slug": "lng-esports",
+        "name": "Suzhou LNG Esports",
+        "code": "LNG",
+        "image": "http://static.lolesports.com/teams/1717487697003_LNGlogo.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1717487697004_LNGlogo.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LPL",
+          "region": "CHINA"
+        }
+      },
+      {
+        "id": "99566404852189289",
+        "slug": "jd-gaming",
+        "name": "Beijing JDG Esports",
+        "code": "JDG",
+        "image": "http://static.lolesports.com/teams/1627457924722_29.png",
+        "alternativeImage": null,
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LPL",
+          "region": "CHINA"
+        }
+      },
+      {
+        "id": "99566404853058754",
+        "slug": "weibo-gaming",
+        "name": "WeiboGaming",
+        "code": "WBG",
+        "image": "http://static.lolesports.com/teams/1641202879910_3.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1641202879910_1.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LPL",
+          "region": "CHINA"
+        }
+      },
+      {
+        "id": "99566404853854212",
+        "slug": "bilibili-gaming",
+        "name": "BILIBILI GAMING",
+        "code": "BLG",
+        "image": "http://static.lolesports.com/teams/1682322954525_Bilibili_Gaming_logo_20211.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1682322954527_Bilibili_Gaming_logo_20211.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LPL",
+          "region": "CHINA"
+        }
+      },
+      {
+        "id": "99566404854685458",
+        "slug": "top-esports",
+        "name": "TOP ESPORTS",
+        "code": "TES",
+        "image": "http://static.lolesports.com/teams/1592592064571_TopEsportsTES-01-FullonDark.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1592592064573_TopEsportsTES-03-FullonLight.png",
+        "backgroundImage": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/top-esports-i4rk4nr3.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "LPL",
+          "region": "CHINA"
+        }
+      },
+      {
+        "id": "99566404856367466",
+        "slug": "anyones-legend",
+        "name": "Anyone's Legend",
+        "code": "AL",
+        "image": "http://static.lolesports.com/teams/1641199582689_.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1641199582691_.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LPL",
+          "region": "CHINA"
+        }
+      },
+      {
+        "id": "99566405941863385",
+        "slug": "lyon-gaming",
+        "name": "LYON",
+        "code": "LYON",
+        "image": "http://static.lolesports.com/teams/1743717443673_isotypelyon-03.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1743717443673_isotypelyon-03.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "LCS",
+          "region": "NORTH AMERICA"
+        }
+      },
+      {
+        "id": "99566408217955692",
+        "slug": "pain-gaming",
+        "name": "paiN Gaming",
+        "code": "PAIN",
+        "image": "http://static.lolesports.com/teams/1674657011011_pain_logo_white.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1674657070286_pain_preto.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "CBLOL",
+          "region": "BRAZIL"
+        }
+      },
+      {
+        "id": "99566408219409348",
+        "slug": "vivo-keyd",
+        "name": "Vivo Keyd Stars",
+        "code": "VKS",
+        "image": "http://static.lolesports.com/teams/1670542079678_vks.png",
+        "alternativeImage": "http://static.lolesports.com/teams/1670541584344_vks.png",
+        "backgroundImage": null,
+        "status": "active",
+        "homeLeague": {
+          "name": "CBLOL",
+          "region": "BRAZIL"
+        }
+      },
+      {
+        "id": "99566408221961358",
+        "slug": "red-kalunga",
+        "name": "RED Kalunga",
+        "code": "RED",
+        "image": "http://static.lolesports.com/teams/1631820575924_red-2021-worlds.png",
+        "alternativeImage": null,
+        "backgroundImage": "http://static.lolesports.com/teams/REDCanidsRED.png",
+        "status": "active",
+        "homeLeague": {
+          "name": "CBLOL",
+          "region": "BRAZIL"
+        }
+      }
+    ]
+  }
+}

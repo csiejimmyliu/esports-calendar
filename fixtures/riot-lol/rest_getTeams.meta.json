@@ -1,0 +1,49 @@
+{
+  "fixture": "rest_getTeams.json",
+  "source": "riot-rest-lol",
+  "request": {
+    "method": "GET",
+    "url": "https://esports-api.lolesports.com/persisted/gw/getTeams",
+    "queryParams": { "hl": "en-US" },
+    "pathParams": {},
+    "headers": {
+      "x-api-key": "<public static key, see .env.example RIOT_ESPORTS_API_KEY>",
+      "user-agent": "esports-calendar/0.1 (+https://github.com/csiejimmyliu/esports-calendar)",
+      "accept": "application/json"
+    }
+  },
+  "capturedOn": "2026-08-09T15:10:30Z",
+  "contents": "1568 teams trimmed to 71. The full response is 1542967 bytes.",
+  "trimming": {
+    "rule": "verbatim-except-players",
+    "removedFields": ["players"],
+    "reason": "players carries real people's names. SPEC excludes player data from this project, and the repo is public. The parser is required to discard the field, so removing it costs no test fidelity. See fixtures/README.md.",
+    "rowsBefore": 1568,
+    "rowsAfter": 71,
+    "selection": [
+      "every team required to resolve the major-league matches in rest_getSchedule.json and rest_getSchedule_ewc.json (64 codes)",
+      "both halves of the only colliding code: EG 103461966951059521 (LCS) and EG 109218871531830908 (LEC)",
+      "one active team with homeLeague null (486 exist upstream; none may enter the team table)",
+      "one archived team (392 exist upstream; excluded by status alone)",
+      "three LCK Challengers teams whose codes (DK, KT, HLE) collide with the main LCK rosters beside them"
+    ],
+    "ordering": "sorted by id, so a re-trim of an unchanged upstream response is byte-identical"
+  },
+  "verification": {
+    "hl": "verified. Captured by an explicit request with hl=en-US; the response's homeLeague.region values are English (KOREA, INTERNATIONAL, ...), and getLeagues was confirmed on 2026-08-09 to return \"KOREA\" under en-US and \"韓國\" under zh-TW.",
+    "capturedOn": "verified. Recorded from `date -u` at the moment of the request, not inferred afterwards.",
+    "queryParams": "verified. hl is the only parameter sent; getTeams takes no others and returns the whole master table.",
+    "identityOfIds": "verified. getTeams id 99566404850008779 (Suzhou LNG Esports) and 99566404848691211 (Invictus Gaming) match rest_getEventDetails.json exactly, which in turn matches the suffix of the GraphQL composite id. Three endpoints agree.",
+    "byteIdenticalToPriorCapture": "The live capture was byte-identical (1542967 bytes, cmp clean) to an undocumented curl taken earlier the same day, so the trimmed content is unchanged by the re-capture. The re-capture exists to give this sidecar verified provenance rather than inferred provenance."
+  },
+  "measurements": {
+    "note": "Measured against the FULL 1568-row response, not this trimmed file. The trimmed file cannot support these figures and the tests do not assert them.",
+    "statusCounts": { "active": 1176, "archived": 392 },
+    "activeWithNullHomeLeague": 486,
+    "teamTableSize": 290,
+    "teamTableFilter": "status == active AND homeLeague.name in the 14 major leagues of config/leagues.json",
+    "collidingCodesInTable": 1,
+    "collidingCodes": ["EG"],
+    "httpImagesInTable": 271
+  }
+}

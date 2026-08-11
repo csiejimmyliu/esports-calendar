@@ -145,16 +145,36 @@ displayPriority{position, status}`.
   "selected"}` from REST `getLeagues` on the same day. Also **LCK and LPL are `not_selected`** —
   it plainly does not encode importance.
 
-`status` values and what they actually mean:
+`status` values as first recorded:
 
-| Value | Leagues | Meaning |
-|---|---|---|
-| `force_selected` | Worlds, MSI, First Stand | International majors, always shown |
-| `selected` / `not_selected` | everything current | Default checkbox state; varies per request |
-| `hidden` | LTA North/South/Cross, LLA, LCO, LCL, WQS, King's Duel | **Discontinued leagues** |
+| Value | Leagues |
+|---|---|
+| `force_selected` | Worlds, MSI, First Stand |
+| `selected` / `not_selected` | everything current |
+| `hidden` | LTA North/South/Cross, LLA, LCO, LCL, WQS, King's Duel |
 
-`hidden` is genuinely useful — for suppressing dead leagues, not for tiering. It corroborates the
-2026 restructure (LTA dissolved; LCS and CBLOL reinstated).
+### Correction: what `displayPriority.status` means — 2026-08-09
+
+*Confidence: verified by direct observation of lolesports.com. Supersedes the previous reading,
+which was inferred from the field name and never checked against the site.*
+
+The earlier note said `selected` / `not_selected` was "the default checkbox state" of the site's
+league filter. That is wrong. **KeSPA Cup is `not_selected`, and it does not appear in the site's
+league filter at all** — it is not an unticked box, it is absent.
+
+The correct conclusion is broader and more useful: `getLeagues` returns 45 leagues, the site
+displays fewer, and **the site applies a filter above the API that the API does not expose**.
+Nothing in `displayPriority` predicts whether a league is shown.
+
+The practical consequence is what matters: the `major` list in `config/leagues.json` **cannot be
+derived from the API at all**. It is transcribed by hand from the site's own filter. That is the
+argument for it being a configuration file rather than a constant in code — it changes on a
+product decision, not on a deploy, and the person changing it is reading a web page, not a
+response body.
+
+`hidden` still looks like a discontinued-league marker and still corroborates the 2026 restructure
+(LTA dissolved; LCS and CBLOL reinstated), but after the above it is treated as a hint, not a
+signal. Nothing in the code reads it.
 
 ### Consequence: maintain our own tier classification
 
@@ -169,6 +189,84 @@ hardcoded array.
 
 TFT is a different game. Multi-title support is required by the **first** source, not deferred to
 VALORANT. Useful validation target for the Stage 0 interface.
+
+## `getTeams` — the team master table
+
+*Probed and captured 2026-08-09T15:10Z. `fixtures/riot-lol/rest_getTeams.json` + sidecar.*
+
+```
+GET /persisted/gw/getTeams?hl=en-US        -- no other parameters; returns everything
+data.teams[]  id, slug, name, code, image, alternativeImage, backgroundImage,
+              status, homeLeague { name, region }, players[]
+```
+
+**1568 teams**, 1542967 bytes. `status`: 1176 `active`, 392 `archived`. No other status value
+appears — *exhaustive over this one capture*, which is why the parser warns on a third value
+rather than throwing.
+
+### It resolves open question 2 — verified
+
+`getTeams` ids are the same ids `getEventDetails` returns:
+
+| Team | getTeams | getEventDetails | GraphQL composite suffix |
+|---|---|---|---|
+| Suzhou LNG Esports | `99566404850008779` | `99566404850008779` | `99566404850008779` |
+| Invictus Gaming | `99566404848691211` | `99566404848691211` | — |
+
+Three endpoints agree, so this is Riot's canonical team id and one unparameterised call builds the
+whole crosswalk. **This is what removed GraphQL from the roadmap**: the persisted-query hash was
+only ever needed for team ids and correct state, and REST now supplies the first outright and the
+second by inference from `result`.
+
+### The join is by code, and it needs narrowing to be safe
+
+`getSchedule` gives a team `name` and `code`; `getTeams` gives `code` and `id`. Joining them is the
+whole mechanism, and the raw join is unsafe:
+
+*Confidence: exhaustive over the 2026-08-09 capture — all 1568 rows classified, not sampled.*
+
+| Candidate set | Rows | Codes claimed more than once |
+|---|---|---|
+| all active teams | 1176 | **27** — nearly all a first team and its own Challengers/Academy squad (DK, BFX, HLE, KT, …) |
+| active ∧ home league is major | **290** | **1** |
+
+The survivor is `EG`: Evil Geniuses LG (`103461966951059521`, LCS) and Evil Geniuses EU
+(`109218871531830908`, LEC). Both are first teams in major leagues, so no automatic rule separates
+them — it takes a manual override, which is what `external_ref.manualOverride` is for.
+
+**Narrowing the table is necessary and not sufficient.** Resolution must also be gated on the tier
+of the league the *match* is played under. Second teams carry their parent's code, so an
+`lck_challengers_league` match asking for "KT" finds `kt Rolster` in a table that quite correctly
+contains only first teams. Measured: **11 sides in `rest_getSchedule.json` would be given the wrong
+LCK org's id** if the gate were absent — "kt Challengers" → kt Rolster, "DK Challengers" → Dplus
+KIA, and so on. A wrong identity looks exactly like a right one, which is worse than a missing one.
+
+### `homeLeague` is a localized display name and nothing else
+
+`{name, region}` — no slug, no id, and `region` is demonstrably translated (`KOREA` / `韓國`). All
+38 distinct `homeLeague.name` values match a `getLeagues.name` exactly, so the join from a league
+slug to the team table runs slug → `getLeagues.name` → `homeLeague.name`.
+
+That makes **`hl=en-US` load-bearing for identity, not just for display**. Mixing locales across
+the two requests would silently produce an empty team table rather than an error. It is the second
+independent argument for the pin, after `blockName` and `tournament.name` being translated.
+
+### Corrections to earlier assumptions
+
+- **`image` is not https.** 1358 of the 1568 rows, and 271 of the 290 in the narrowed table, are
+  `http://`. The `getTeams` asset is usually newer than the one in `getSchedule` and is preferred
+  for that reason, but it does not solve mixed content and the rewrite still runs over it.
+- **`status: "active"` is not a currency signal.** LCK has 70 active rows against ten real teams;
+  the master table keeps historical orgs listed. This is harmless: the table is allowed to be
+  dirty as long as it does not collide.
+- **486 of the 1176 active rows have `homeLeague: null`** — academy squads and regional teams.
+  They cannot be narrowed and so are excluded outright.
+
+### `players`
+
+Every team carries a full roster. SPEC excludes player data, so the field is not declared in the
+DTO — zod strips it at the wire boundary rather than leaving it to be dropped downstream — and it
+is removed from the committed fixture under the personal-data exception in `fixtures/README.md`.
 
 ## Endpoint-specific notes
 
@@ -185,5 +283,16 @@ an inconclusive result, not evidence that streams are absent. Re-probe during an
    `getEventDetails` returned `[]` for an unstarted match; `getLive` was empty because nothing was
    live. **Re-run `getLive` during an LCK or LPL broadcast.** Blocks FR-4, and determines whether
    a separate pre-broadcast fetch path is needed in the architecture.
-2. Does `getTeams?id=<leagueId>` return the same team ids as `getEventDetails`? If so it is the
-   cheap way to build the team master table in bulk.
+2. ~~Does `getTeams` return the same team ids as `getEventDetails`?~~ **Answered 2026-08-09: yes.**
+   It takes no parameters, returns all 1568 teams, and its ids match `getEventDetails` exactly. See
+   the `getTeams` section above. It is the cheap bulk path, and it is what made the GraphQL adapter
+   unnecessary.
+
+## Also captured: `getSchedule?leagueId=<id>`
+
+*Verified 2026-08-09.* `getSchedule` accepts a `leagueId` and returns that league's full history in
+one page — 28 events for `ewc_lol`, both `pages` cursors `null`, every event carrying
+`league.slug: "ewc_lol"`. The unparameterised call returns a ~5-day window around now; this one
+does not. Useful for backfill, and it is how `rest_getSchedule_ewc.json` was captured: the
+unparameterised window contained no team playing outside its own home league, so cross-league
+resolution had nothing to test against.

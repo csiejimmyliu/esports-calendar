@@ -1,0 +1,42 @@
+{
+  "fixture": "rest_getSchedule_ewc.json",
+  "source": "riot-rest-lol",
+  "request": {
+    "method": "GET",
+    "url": "https://esports-api.lolesports.com/persisted/gw/getSchedule",
+    "queryParams": {
+      "hl": "en-US",
+      "leagueId": "116838530616006090"
+    },
+    "headers": {
+      "x-api-key": "<public static key, see .env.example RIOT_ESPORTS_API_KEY>",
+      "user-agent": "esports-calendar/0.1 (+https://github.com/csiejimmyliu/esports-calendar)",
+      "accept": "application/json"
+    }
+  },
+  "capturedOn": "2026-08-09T15:11Z",
+  "contents": "Esports World Cup 2026, 2026-07-15 to 2026-07-19. 28 events trimmed to 6.",
+  "whyThisFixtureExists": "rest_getSchedule.json contains no team playing under a league slug other than its own home league, so the cross-league resolution path had no evidence. The only such case in that capture was KeSPA Cup, which config/leagues.json classifies as minor and therefore never resolves. In the full 28-event response, 48 of 56 non-TBD sides resolve to a team whose homeLeague is not the Esports World Cup.",
+  "trimming": {
+    "rule": "verbatim",
+    "removedFields": [],
+    "rowsBefore": 28,
+    "rowsAfter": 6,
+    "selection": [
+      "index 0  SEN (LCS) vs TS (home league IS Esports World Cup) — not every team at an international event is cross-league",
+      "index 1  GEN (LCK) vs KC (LEC) — the plain cross-league case",
+      "index 2  GAM (LCP) vs T1 (LCK)",
+      "index 5  FUR (CBLOL) vs G2 (LEC)",
+      "index 7  JDG (LPL) vs LYON (LCS) — the code LYON is also claimed by an LRN org, which the major filter excludes",
+      "index 27 KC (LEC) vs DK (LCK) — Bo5 final"
+    ],
+    "ordering": "upstream order preserved; `pages` copied verbatim from the untrimmed response"
+  },
+  "verification": {
+    "hl": "verified. Sent explicitly; blockName values are English (\"Groups\", \"Quarterfinals\", \"Finals\").",
+    "capturedOn": "verified. Recorded at request time.",
+    "leagueId": "verified. 116838530616006090 is the id of slug ewc_lol in rest_getLeagues.json. All 28 returned events carry league.slug ewc_lol.",
+    "pages": "verified. Both cursors are null: this parameterised response is a single page, unlike the unparameterised getSchedule.",
+    "state": "All 28 events report state \"completed\" and every team has a result, so this capture exercises no lossy-state correction. That path stays covered by rest_getSchedule.json."
+  }
+}

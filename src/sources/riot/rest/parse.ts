@@ -7,12 +7,16 @@
  * the parser.
  */
 
+import type { LeagueConfig } from '../../../config/leagues.js';
 import type { GameSlug, MatchState, SourceLeague, SourceMatch, SourceSide, SourceTeam } from '../../../core/types.js';
 import { WarningCollector } from '../../../core/warnings.js';
 import type { SourceWarning } from '../../../core/warnings.js';
 import { normalizeToUtcIso } from '../../../core/time.js';
 import { GetLeaguesResponse, GetScheduleResponse, ScheduleEvent } from './dto.js';
 import type { ScheduleEventDto } from './dto.js';
+import { toHttps } from './https.js';
+import { resolveTeam } from './teams.js';
+import type { TeamIndex } from './teams.js';
 
 export interface ParseOutput<T> {
   items: T[];
@@ -26,6 +30,13 @@ export interface ParseScheduleOptions {
    * still produced, with `leagueExternalId: null` and a `degraded-fetch` warning from the caller.
    */
   leagueIdBySlug?: ReadonlyMap<string, string>;
+  /** The hand-maintained tier table. Decides which matches get their teams resolved at all. */
+  leagueConfig: LeagueConfig;
+  /**
+   * Absent when getTeams failed. Every team then keeps its name with `externalId: null`, and the
+   * caller raises `no-team-identity` — a calendar without crosswalk ids beats no calendar.
+   */
+  teamIndex?: TeamIndex;
 }
 
 const KNOWN_STATES: Record<string, MatchState> = {
@@ -33,17 +44,6 @@ const KNOWN_STATES: Record<string, MatchState> = {
   inProgress: 'inProgress',
   completed: 'completed',
 };
-
-/**
- * Riot serves team and league logos over plain http, which is blocked as mixed content on an
- * https page. Rewritten here rather than at render, so every consumer — web, ICS, iOS — gets the
- * same URL. Not warned per item: it is every logo in every response, and 80 identical warnings
- * is noise that hides the one warning that matters.
- */
-function toHttps(url: string | null | undefined): string | null {
-  if (!url) return null;
-  return url.startsWith('http://') ? `https://${url.slice('http://'.length)}` : url;
-}
 
 /**
  * Riot's TBD convention on REST: `code: "TBD"` **and** `result: null` together.
@@ -124,14 +124,68 @@ function parseEvent(
     );
   }
 
+  /**
+   * Tier is a property of the league the match is played under, and it decides whether team
+   * resolution is attempted at all — see resolveTeam. Warned once per event rather than per side,
+   * and only for `unclassified`: an explicit `minor` is a decision already recorded in the config
+   * file, while an absent slug is a league that appeared upstream after the file was reviewed.
+   */
+  const tier = opts.leagueConfig.tierFor(event.league.slug);
+  if (tier === 'unclassified') {
+    warn.warn(
+      'unclassified-league',
+      `league ${JSON.stringify(event.league.slug)} is absent from config/leagues.json; its matches carry no team ids until it is classified`,
+      event.league.slug,
+    );
+  }
+
   const sides = teams.map((t): SourceSide => {
     if (isTbd(t)) return { team: null, score: null };
+
+    // getSchedule itself has no team ids; everything below comes from the getTeams join.
+    let externalId: string | null = null;
+    let logoUrl = toHttps(t.image);
+
+    if (opts.teamIndex !== undefined) {
+      const resolution = resolveTeam(opts.teamIndex, {
+        code: t.code,
+        leagueSlug: event.league.slug,
+        tier,
+        override: opts.leagueConfig.overrideFor(t.code, event.league.slug),
+      });
+      switch (resolution.kind) {
+        case 'resolved':
+          externalId = resolution.team.externalId;
+          // The master table's image is the newer asset of the two. It is not the more secure one
+          // — most of them are http as well, which is why toHttps still runs over it.
+          logoUrl = resolution.team.logoUrl ?? logoUrl;
+          break;
+        case 'unresolved':
+          warn.warn(
+            'team-unresolved',
+            `no team in the master table claims code ${JSON.stringify(t.code)} (${t.name}) seen in league ${event.league.slug}`,
+            { code: t.code, name: t.name, league: event.league.slug },
+          );
+          break;
+        case 'ambiguous':
+          warn.warn(
+            'team-ambiguous',
+            `code ${JSON.stringify(t.code)} in league ${event.league.slug} is claimed by ${String(resolution.candidates.length)} teams and no override settles it; left unidentified rather than guessed`,
+            { code: t.code, candidates: resolution.candidates.map((c) => c.externalId) },
+          );
+          break;
+        case 'out-of-scope':
+          // Deliberate and silent. Roughly half the events in an unfiltered getSchedule are out of
+          // scope, and warning on each would bury every warning that means something.
+          break;
+      }
+    }
+
     const team: SourceTeam = {
-      // No team ids exist anywhere in this endpoint's response.
-      externalId: null,
+      externalId,
       name: t.name,
       code: t.code,
-      logoUrl: toHttps(t.image),
+      logoUrl,
     };
     return { team, score: t.result?.gameWins ?? null };
   }) as [SourceSide, SourceSide];
@@ -179,9 +233,18 @@ export function parseSchedule(raw: unknown, opts: ParseScheduleOptions): ParseOu
     );
   }
 
-  // Once per fetch, not once per team. Declared as a capability too, but a sync run reading only
-  // warnings should still be able to see why no team crosswalk rows appeared.
-  warn.warn('no-team-identity', 'Riot REST getSchedule exposes no team ids; teams cannot be crosswalked from this endpoint');
+  /**
+   * This used to be unconditional: getSchedule alone exposes no team ids, so every fetch said so.
+   * It is now conditional on the join actually being unavailable, because the adapter supplies the
+   * getTeams index and the normal case does have identity. Left in place for the degraded case —
+   * a sync run reading only warnings must still be able to see why no crosswalk rows appeared.
+   */
+  if (opts.teamIndex === undefined) {
+    warn.warn(
+      'no-team-identity',
+      'no team master table available; getSchedule alone exposes no team ids, so nothing can be crosswalked',
+    );
+  }
 
   return { items, warnings: warn.list() };
 }

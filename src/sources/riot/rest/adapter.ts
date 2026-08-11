@@ -19,12 +19,15 @@ import type {
   SourceCapabilities,
   TimeWindow,
 } from '../../../core/source.js';
+import type { LeagueConfig } from '../../../config/leagues.js';
 import type { SourceLeague, SourceMatch } from '../../../core/types.js';
 import { WarningCollector } from '../../../core/warnings.js';
 import { addDays, parseUtcInstant } from '../../../core/time.js';
 import { RiotRestClient } from './client.js';
 import type { RawResponse } from './client.js';
 import { parseLeagues, parseSchedule } from './parse.js';
+import { buildTeamIndex, parseTeams } from './teams.js';
+import type { TeamIndex } from './teams.js';
 
 /**
  * How bytes are obtained, so the adapter's logic is testable without a network and the CLI can
@@ -39,24 +42,33 @@ import { parseLeagues, parseSchedule } from './parse.js';
 export interface RiotRestTransport {
   getSchedule(): Promise<RawResponse>;
   getLeagues(): Promise<RawResponse>;
+  /** The team master table. One call per sync run, never one per match. */
+  getTeams(): Promise<RawResponse>;
 }
 
 export function httpTransport(client: RiotRestClient): RiotRestTransport {
   return {
     getSchedule: () => client.get('getSchedule'),
     getLeagues: () => client.get('getLeagues'),
+    getTeams: () => client.get('getTeams'),
   };
 }
 
 /** Reads captured responses. Used by the golden-fixture tests and by the CLI's default mode. */
-export function fixtureTransport(fixtures: { schedule: unknown; leagues?: unknown }): RiotRestTransport {
+export function fixtureTransport(fixtures: {
+  schedule: unknown;
+  leagues?: unknown;
+  teams?: unknown;
+}): RiotRestTransport {
   const size = (v: unknown): number => JSON.stringify(v).length;
+  const supply = (name: string, value: unknown) => (): Promise<RawResponse> =>
+    value === undefined
+      ? Promise.reject(new Error(`no ${name} fixture supplied`))
+      : Promise.resolve({ json: value, bytes: size(value) });
   return {
     getSchedule: () => Promise.resolve({ json: fixtures.schedule, bytes: size(fixtures.schedule) }),
-    getLeagues: () =>
-      fixtures.leagues === undefined
-        ? Promise.reject(new Error('no leagues fixture supplied'))
-        : Promise.resolve({ json: fixtures.leagues, bytes: size(fixtures.leagues) }),
+    getLeagues: supply('leagues', fixtures.leagues),
+    getTeams: supply('teams', fixtures.teams),
   };
 }
 
@@ -70,8 +82,19 @@ const CAPABILITIES: SourceCapabilities = {
    * value from `result` instead, so the state it reports is inferred, and this flag says so.
    */
   explicitState: false,
-  // The disqualifying one: 80 events, 80 ids, none of them a team's.
-  teamIdentity: false,
+  /**
+   * True since Stage 0.5, and it describes the *adapter*, not `getSchedule`.
+   *
+   * getSchedule still contains no team ids — 80 events, 80 ids, none of them a team's. The adapter
+   * joins it against `getTeams`, which returns the whole master table with plain numeric ids that
+   * match `getEventDetails` and the suffix of the GraphQL composite id. Hiding that second request
+   * is the adapter's job (NFR-3); declaring the resulting capability is this flag's.
+   *
+   * It stays true on a degraded run. A capability is what the adapter can do, not how one fetch
+   * went: when getTeams fails, the matches come back with null ids and a `no-team-identity`
+   * warning, and mutating the flag instead would make a transient outage look like a redesign.
+   */
+  teamIdentity: true,
   // Riot supplies no streams at all. Settled; League.defaultStreamUrl is the answer.
   streamUrls: false,
   // getSchedule's `pages` cursors are real and work.
@@ -115,7 +138,15 @@ export const lckHasUpcoming: SourceCanary = {
   },
 };
 
-export function createRiotRestLolAdapter(transport: RiotRestTransport): SourceAdapter {
+/**
+ * The tier table is injected rather than read from disk here, for the same reason the transport
+ * is: it keeps the adapter free of filesystem access and lets a test state its whole world in
+ * three lines instead of maintaining a parallel config file.
+ */
+export function createRiotRestLolAdapter(
+  transport: RiotRestTransport,
+  leagueConfig: LeagueConfig,
+): SourceAdapter {
   return {
     id: 'riot-rest-lol',
     game: 'lol',
@@ -149,6 +180,7 @@ export function createRiotRestLolAdapter(transport: RiotRestTransport): SourceAd
        * calendar missing matches (NFR-4 applies within a source, not only across sources).
        */
       let leagueIdBySlug: Map<string, string> | undefined;
+      let leagueNameBySlug: Map<string, string> | undefined;
       try {
         const leagues = await transport.getLeagues();
         requestCount += 1;
@@ -156,6 +188,7 @@ export function createRiotRestLolAdapter(transport: RiotRestTransport): SourceAd
         const parsed = parseLeagues(leagues.json, 'lol');
         warn.absorb(parsed.warnings);
         leagueIdBySlug = new Map(parsed.items.map((l) => [l.slug, l.externalId]));
+        leagueNameBySlug = new Map(parsed.items.map((l) => [l.slug, l.name]));
       } catch (err) {
         warn.warn(
           'degraded-fetch',
@@ -163,13 +196,65 @@ export function createRiotRestLolAdapter(transport: RiotRestTransport): SourceAd
         );
       }
 
-      const parsed = parseSchedule(
-        schedule.json,
-        leagueIdBySlug === undefined ? { game: 'lol' } : { game: 'lol', leagueIdBySlug },
-      );
+      /**
+       * Secondary, and the whole point of Stage 0.5. One call per fetch, never one per match.
+       *
+       * The index needs league *names*, not slugs: getTeams' only handle from a team to a league
+       * is `homeLeague.name`, which is localized and carries neither slug nor id. So the config's
+       * major slugs are translated through getLeagues — and if getLeagues failed there is nothing
+       * to translate with, so identity degrades with it rather than silently narrowing to nothing.
+       */
+      let teamIndex: TeamIndex | undefined;
+      if (leagueNameBySlug === undefined) {
+        warn.warn(
+          'no-team-identity',
+          'getLeagues failed, so major league slugs cannot be mapped to the localized names getTeams uses; teams left unidentified',
+        );
+      } else {
+        try {
+          const teams = await transport.getTeams();
+          requestCount += 1;
+          bytes += teams.bytes;
+          const parsed = parseTeams(teams.json);
+          warn.absorb(parsed.warnings);
+
+          const majorNames = new Set<string>();
+          for (const slug of leagueConfig.majorSlugs()) {
+            const name = leagueNameBySlug.get(slug);
+            if (name === undefined) {
+              // A slug the config calls major that upstream no longer lists. Its teams cannot
+              // enter the table, so say so rather than quietly shipping a smaller one.
+              warn.warn(
+                'scope-list-stale',
+                `config/leagues.json marks ${JSON.stringify(slug)} major but getLeagues does not list it; its teams are absent from the team table`,
+                slug,
+              );
+              continue;
+            }
+            majorNames.add(name);
+          }
+          teamIndex = buildTeamIndex(parsed.items, majorNames);
+        } catch (err) {
+          warn.warn(
+            'degraded-fetch',
+            `getTeams failed, matches returned without team ids: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      const parsed = parseSchedule(schedule.json, {
+        game: 'lol',
+        leagueConfig,
+        ...(leagueIdBySlug === undefined ? {} : { leagueIdBySlug }),
+        ...(teamIndex === undefined ? {} : { teamIndex }),
+      });
       warn.absorb(parsed.warnings);
 
-      return { items: parsed.items, warnings: warn.list(), diagnostics: { requestCount, bytes } };
+      return {
+        items: parsed.items,
+        warnings: warn.list(),
+        diagnostics: { requestCount, bytes, teamTableSize: teamIndex?.size ?? 0 },
+      };
     },
 
     async fetchLeagues(): Promise<FetchResult<SourceLeague>> {

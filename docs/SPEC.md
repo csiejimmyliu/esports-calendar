@@ -7,11 +7,29 @@
 
 ## 0. One-line definition
 
-A **cross-title esports match calendar**. Users follow leagues and teams; matches they care about
-appear in a web calendar, a subscribable ICS feed, and (later) a native iOS app — each match
+A **League of Legends esports match calendar**. Users follow leagues and teams; matches they care
+about appear in a web calendar, a subscribable ICS feed, and (later) a native iOS app — each match
 carrying a stream link and an optional pre-match notification.
 
-League of Legends is the first title implemented. It is not the product.
+The target is simple to state: **every match the lolesports.com site shows, in one calendar you
+can subscribe to.**
+
+### Scope decision, 2026-08-09: LoL only
+
+This document previously read "League of Legends is the first title implemented. It is not the
+product." That is no longer the plan. VALORANT and CS2 adapters are off the roadmap.
+
+**The cross-title design is kept and paid for; only the implementation is deferred.** Three real
+sources were probed before the interface was written, and what they forced stays in:
+`SourceCapabilities`, the `game` field on the domain types, the optional `league`, the two-phase
+`listScopes` → `fetchMatches` shape, and the four notes in `docs/sources/`. The marginal cost of
+keeping them is near zero, unpicking them would cost a working session, and they are the reason
+the interface is not simply a transcription of Riot's response shape.
+
+`docs/sources/valorant.md` and `docs/sources/cs2-blast.md` are retained as findings, not as
+pending work. For the record: VALORANT shares Riot's backend — same key, same envelope, one path
+segment apart (`/persisted/val/` vs `/persisted/gw/`) — so if cheap multi-title validation is ever
+wanted again, it is an hour of work rather than a session.
 
 ---
 
@@ -21,8 +39,8 @@ League of Legends is the first title implemented. It is not the product.
 
 | Area | Decision |
 |---|---|
-| Titles | LoL first. A second title is added at Stage 7 to validate the abstraction. |
-| Event tier | **Officially broadcast major events only.** No tier 2/3, no amateur, no qualifiers-without-broadcast. |
+| Titles | **LoL only.** The abstraction that would carry a second title is built and kept; adding one is deferred indefinitely (see §0). |
+| Event tier | **Officially broadcast major events only.** No tier 2/3, no amateur, no qualifiers-without-broadcast. The list of which leagues qualify is hand-maintained in `config/leagues.json`; it cannot be derived from the API — see §4. |
 | Subscription | League and Team. |
 | Delivery | Web app → ICS feed → native iOS app. API-first throughout. |
 | Streams | Official streams per match + user channel override. |
@@ -167,6 +185,21 @@ leagues, and `displayPriority` is per-request UI state — CACG returned `hidden
 and `selected` from another the same day, and LCK and LPL are `not_selected`. Sync every league
 into the DB with `tier` defaulting to `unclassified` and surface new ones for manual review.
 
+The tier list is stronger than "no signal we trust": **the site itself filters above the API and
+does not expose the filter.** KeSPA Cup is returned by `getLeagues` with `not_selected` and does
+not appear in the site's league picker at all — so `not_selected` never meant "shown but unticked".
+Verified by direct observation of the site, 2026-08-09; the earlier reading was inferred from the
+field name and is corrected in `docs/sources/lolesports-rest.md`.
+
+So the list is transcribed by hand from the site into `config/leagues.json`, which holds a tier per
+league slug and the manual team overrides that go with it. Being unable to derive it is *why* it is
+a config file: it changes on a product decision, not a deploy. An explicit `minor` and an absent
+slug are different states — absence means a league appeared upstream after the file was reviewed,
+and it warns. Three leagues appeared during 2026 alone.
+
+Tier gates two things, not one: which teams enter the team master table, **and** which matches have
+their teams identified at all. Both are required — see §5 on identity.
+
 ### Agents: build-time only
 
 An agent (Hermes, Claude Code) may be used to explore a new site, identify its endpoints, infer
@@ -233,6 +266,15 @@ Points worth defending in review:
 - **`external_ref` is the identity layer.** Internal ids are canonical; every source's id is an
   alias. Seeded initially from Riot team ids, but the schema never assumes Riot exists. Manual
   override is expected — renames, merges, and new orgs are normal.
+
+  Riot team ids come from `getTeams`, one unparameterised call returning the whole master table.
+  The join from a match to that table is by team **code**, and it is only safe because it is
+  narrowed twice: to teams whose home league is major, and to matches played in a major league.
+  Unnarrowed, 27 codes are claimed by more than one team; narrowed, exactly one is (`EG`, an LCS
+  org and an LEC org, both first teams), and that one is settled by a `manualOverride` entry in
+  `config/leagues.json`. Dropping the second narrowing silently attaches first-team ids to academy
+  squads — measured at 11 sides in a single captured day. An ambiguous code resolves to **nothing**
+  and warns; it is never guessed.
 - **`source_health` is not bookkeeping**, it is how NFR-5 is satisfied.
 - **`device` exists from the start** even though APNs comes later, so the notification core is
   channel-agnostic from day one rather than retrofitted.
@@ -333,7 +375,7 @@ the queue is actually for.
 | **DB read replica** | **PRACTICE** | One Postgres handles this for years. Build it to observe replication lag and read-after-write anomalies. Label it practice in your notes. |
 | **Celebrity / hotspot** | **MOSTLY GONE** | It would have shown up as a live-traffic spike on one match. Dropping live removes it. Note what condition would bring it back: any real-time feature. |
 | **Multi data center** | **THEATRE at this scale** | CDN already solves latency for the only large payload. Becomes real under a hard availability SLA. |
-| **Sharding** | **THEATRE** | Matches accumulate at ~10⁴/year across all titles. Sharding solves storage and write throughput; you have neither problem. If you want the exercise, do time-based **partitioning** on `starts_at_utc` — a real technique with a real, modest payoff. |
+| **Sharding** | **THEATRE** | Matches accumulate at ~10⁴/year. Sharding solves storage and write throughput; you have neither problem. If you want the exercise, do time-based **partitioning** on `starts_at_utc` — a real technique with a real, modest payoff. |
 
 **The transferable lesson**: each brick answers a specific bottleneck. Identify the bottleneck
 first. Here it is fan-out of a small, universally shared payload — solved completely by CDN and
@@ -352,33 +394,57 @@ cache, and not at all by sharding.
 | **4** | Google OAuth + subscription migration. | Subscribe anonymously → sign in → subscriptions intact, not duplicated. |
 | **5** | ICS feed. | Subscribed in real Google Calendar; changing a match time **updates** the existing event rather than duplicating it. |
 | **6** | Notification core (sweeper) + Web Push. | Notification fires; rescheduling a match produces no notification at the stale time. |
-| **7** | **CS2 via BLAST.** | Subscription, calendar, ICS, and notification logic all work with no changes to core logic. Only a new adapter was added. |
-| **8** | Cache + CDN + ≥2 instances behind LB. | Cache hit ratio observable; killing an instance is invisible to users. |
-| **9** | Observability + CI/CD. | Dashboard shows per-source sync health, staleness age, cache hit ratio, p95. |
-| **10** | Native iOS app + APNs. | Feature parity with web for browsing and subscribing. |
-| **11** | *(study track)* read replica, partitioning, load test. | Before/after measurements written up — including where the gain was negligible. |
+| **7** | Cache + CDN + ≥2 instances behind LB. | Cache hit ratio observable; killing an instance is invisible to users. |
+| **8** | Observability + CI/CD. | Dashboard shows per-source sync health, staleness age, cache hit ratio, p95. |
+| **9** | Native iOS app + APNs. | Feature parity with web for browsing and subscribing. |
+| **10** | *(study track)* read replica, partitioning, load test. | Before/after measurements written up — including where the gain was negligible. |
+| **11** | *(shelved)* CS2 via BLAST. | Only reached if a second title is ever wanted. Subscription, calendar, ICS, and notification logic work with no changes to core logic; only a new adapter was added. |
 
-**Stage 7 is CS2, not VALORANT.** VALORANT shares Riot's backend — same envelope, same key, one
-path segment apart. It is worth adding (it forces optional `match`, optional `blockName`, a
-`tournament` field with per-endpoint shapes, and a different error envelope) but it is a weak exam.
-BLAST is the real one: no global schedule, no league tier, inverted TBD and sweep conventions, two
-vocabularies for one entity, and three distinct error shapes.
+**The second source moved to the end — and this costs something.** CS2 via BLAST used to sit at
+Stage 7, deliberately *before* cache and CDN, with this reasoning: adding a genuinely foreign
+source will force schema changes, and building a scaling layer on a schema that has never faced a
+second source means building on sand. Validate the abstraction, then scale it.
 
-**Stage 7 sits before Stage 8 deliberately.** Adding a genuinely foreign source will force schema
-changes. Building cache and CDN layers on a schema that has never faced one means building on sand.
-Validate the abstraction, then scale it.
+That reasoning was not refuted. It was overruled by the scope decision in §0, and the price is
+recorded here rather than discovered later: **Stage 7's cache and CDN will be built on a schema no
+second source has ever tested.** If a second source is ever added and the schema has to change,
+that is the explanation — an informed trade, not an oversight.
 
-Stage 11 is explicitly a study track. Keep negative results — a measured "this changed nothing" is
+What reduces the risk, though it does not remove it: the adapter interface *was* designed against
+three probed sources before any of it was written, so the shape has met foreign requirements even
+though the persistence layer has not. BLAST remains the exam worth sitting if one is ever sat — no
+global schedule, no league tier, inverted TBD and sweep conventions, two vocabularies for one
+entity, three distinct error shapes. VALORANT would be the weak version: same backend, same key,
+one path segment apart.
+
+Stage 10 is explicitly a study track. Keep negative results — a measured "this changed nothing" is
 worth more than an unmeasured architecture diagram.
 
 ---
 
 ## 9. Open decisions
 
-- PaaS target for Stage 8 (Fly.io / Railway / other).
-- **How BLAST tournament slugs are discovered.** No tournaments endpoint was found; the listing
-  page is server-rendered. Probe `/v2/games/cs/tournaments`, else parse the SSR page, else maintain
-  the slug list by hand alongside the league tier table. A manual list is an acceptable v1 answer.
-- Whether CS users should be able to follow an **organizer** (all BLAST events) rather than a
-  tournament, given that CS has no durable league to follow.
+- PaaS target for Stage 7 (Fly.io / Railway / other).
+- **`hl=en-US` is pinned on every request — SETTLED, recorded here because it is load-bearing.**
+  Two independent reasons, both verified:
+  1. Display fields are translated. `blockName` is `"Week 11"` under `en-US` and `"第11週"` under
+     `zh-TW`; `league.region` is `KOREA` / `韓國`. Identity resolved from a varying locale makes one
+     tournament into two entities depending on who asked.
+  2. **Identity itself now depends on it.** `getTeams.homeLeague` is `{name, region}` — no slug and
+     no id — so the only join from a team to a league is by *localized display name*, matched
+     against `getLeagues.name`. Mixing locales across those two requests does not error; it
+     produces an empty team table and a calendar with no team ids at all.
+
+  Open part: whether a *display* locale is offered to users later. If it is, it must be a second
+  request or a render-time concern, never the identity one. See `IDENTITY_LOCALE` in
+  `src/sources/riot/rest/client.ts`.
+- **Review cadence for `config/leagues.json`.** The major list cannot be derived — the site filters
+  above the API and does not expose the filter — so it is transcribed by hand. An unknown slug
+  warns at fetch time, which catches new leagues; nothing catches a league that should be promoted
+  or demoted. Unresolved whether that needs more than "notice the warning".
+- *(shelved with Stage 11)* **How BLAST tournament slugs are discovered.** No tournaments endpoint
+  was found; the listing page is server-rendered. Probe `/v2/games/cs/tournaments`, else parse the
+  SSR page, else maintain the slug list by hand. A manual list is an acceptable v1 answer.
+- *(shelved with Stage 11)* Whether CS users should be able to follow an **organizer** (all BLAST
+  events) rather than a tournament, given that CS has no durable league to follow.
 - Apple Developer account for APNs (annual fee). PWA + Web Push is the interim path.

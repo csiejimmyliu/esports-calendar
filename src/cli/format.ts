@@ -29,8 +29,37 @@ export function selectUpcoming(matches: readonly SourceMatch[], opts: SelectOpti
     .sort((a, b) => a.startsAtUtc.localeCompare(b.startsAtUtc));
 }
 
+/**
+ * `CODE#id`, or `CODE#?` when the team was named but not identified.
+ *
+ * The id is printed because Stage 0.5's whole deliverable is that it exists — a run that prints
+ * only names cannot show the difference between a resolved team and an unresolved one, which is
+ * exactly the failure this stage is meant to make visible.
+ */
 function sideLabel(side: SourceMatch['sides'][number]): string {
-  return side.team?.code ?? side.team?.name ?? 'TBD';
+  const team = side.team;
+  if (team === null) return 'TBD';
+  const name = team.code ?? team.name;
+  return `${name}#${team.externalId ?? '?'}`;
+}
+
+/** Counts the three outcomes a printed run should be judged on. */
+export interface ResolutionTally {
+  resolved: number;
+  unidentified: number;
+  tbd: number;
+}
+
+export function tallyResolution(matches: readonly SourceMatch[]): ResolutionTally {
+  const tally: ResolutionTally = { resolved: 0, unidentified: 0, tbd: 0 };
+  for (const match of matches) {
+    for (const side of match.sides) {
+      if (side.team === null) tally.tbd += 1;
+      else if (side.team.externalId === null) tally.unidentified += 1;
+      else tally.resolved += 1;
+    }
+  }
+  return tally;
 }
 
 export function formatMatchLine(match: SourceMatch, tz: string, spoilers: boolean): string {
@@ -43,7 +72,7 @@ export function formatMatchLine(match: SourceMatch, tz: string, spoilers: boolea
   const score =
     spoilers && match.state === 'completed' ? `  ${String(a.score ?? 0)}-${String(b.score ?? 0)}` : '';
 
-  return [`${weekday} ${date}`, time.padEnd(5), teams.padEnd(22), bo.padEnd(3), match.stageLabel ?? '', score]
+  return [`${weekday} ${date}`, time.padEnd(5), teams.padEnd(46), bo.padEnd(3), match.stageLabel ?? '', score]
     .join('  ')
     .trimEnd();
 }
@@ -55,6 +84,8 @@ export interface Args {
   now: string | null;
   live: boolean;
   spoilers: boolean;
+  /** Which captured schedule to read in offline mode. Ignored with --live. */
+  fixture: string;
 }
 
 export function parseArgs(argv: readonly string[]): Args {
@@ -65,6 +96,7 @@ export function parseArgs(argv: readonly string[]): Args {
     now: null,
     live: false,
     spoilers: false,
+    fixture: 'rest_getSchedule.json',
   };
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
@@ -89,6 +121,16 @@ export function parseArgs(argv: readonly string[]): Args {
       case '--now':
         if (value === undefined) throw new Error('--now needs a value');
         args.now = value;
+        i += 1;
+        break;
+      case '--fixture':
+        if (value === undefined) throw new Error('--fixture needs a value');
+        // A bare filename under fixtures/riot-lol/, not a path: the CLI reads committed captures,
+        // it is not a general-purpose JSON viewer.
+        if (value.includes('/') || value.includes('..')) {
+          throw new Error(`--fixture takes a file name under fixtures/riot-lol/, got ${JSON.stringify(value)}`);
+        }
+        args.fixture = value;
         i += 1;
         break;
       case '--live':

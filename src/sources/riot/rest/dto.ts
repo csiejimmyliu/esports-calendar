@@ -95,6 +95,48 @@ export const GetLeaguesResponse = z.object({
   }),
 });
 
+/**
+ * `getTeams` takes no parameters beyond `hl` and returns the entire team master table — 1568 rows
+ * on 2026-08-09. It is the endpoint that gives this adapter team identity at all.
+ *
+ * Two deliberate omissions:
+ *
+ * 1. **`players` is not declared.** The response carries a full roster per team. SPEC excludes
+ *    player data from this project, and an undeclared field is stripped by zod rather than merely
+ *    ignored downstream — so it cannot reach the domain by someone later spreading the object.
+ * 2. **`status` is a plain string**, not a zod enum. Only `active` and `archived` were observed
+ *    across all 1568 rows, and a fixture proves existence, never absence: a third value must warn,
+ *    not throw.
+ *
+ * `homeLeague` is `{name, region}` — no slug and no id, and both fields are localized. It is the
+ * only handle from a team to a league, which is a second independent reason every request pins
+ * `hl=en-US` (see IDENTITY_LOCALE in client.ts).
+ */
+const TeamsHomeLeague = z.object({
+  name: z.string(),
+  region: z.string().nullable().optional(),
+});
+
+export const GetTeamsResponse = z.object({
+  data: z.object({
+    teams: z.array(
+      z.object({
+        id: z.string(),
+        slug: z.string().nullable().optional(),
+        name: z.string(),
+        code: z.string(),
+        image: z.string().nullable().optional(),
+        alternativeImage: z.string().nullable().optional(),
+        backgroundImage: z.string().nullable().optional(),
+        status: z.string(),
+        /** Null for 486 of the 1176 active rows: academy squads and regional teams. */
+        homeLeague: TeamsHomeLeague.nullable().optional(),
+      }),
+    ),
+  }),
+});
+
 export type ScheduleEventDto = z.infer<typeof ScheduleEvent>;
+export type GetTeamsResponseDto = z.infer<typeof GetTeamsResponse>;
 export type GetScheduleResponseDto = z.infer<typeof GetScheduleResponse>;
 export type GetLeaguesResponseDto = z.infer<typeof GetLeaguesResponse>;
