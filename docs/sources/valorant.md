@@ -63,8 +63,14 @@ and reports zero rows — the silent-empty failure mode.
 **No `match`. No `blockName`.** Any parser doing `event.match.id` crashes.
 
 All 80 events in the LoL sample were `type: "match"`, so an adapter written from that fixture alone
-would pass its tests and then break in production — the two sources share a backend, so LoL emits
-`show` events too. We simply did not sample one.
+would pass its tests and then break in production.
+
+*Confidence: `"show"` is **observed** here — 2 of 80 events in the VALORANT capture, counted. That LoL
+emits them too is **inferred** from the shared backend (itself cross-checked across four URL
+permutations, see the top of this note) and has never been observed: no LoL `show` event appears in any
+capture. The inference is a good one and the mitigation costs nothing either way, which is exactly why
+it is worth stating as an inference — an earlier wording said flatly "so LoL emits `show` events too",
+which is the declarative-voice failure this repo's own note-writing rules exist to prevent.*
 
 **Lesson: a fixture proves existence, never absence.** Parsers must enumerate `type` exhaustively
 and log a warning on unknown values rather than throwing or silently dropping.

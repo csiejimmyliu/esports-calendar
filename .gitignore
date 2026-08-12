@@ -5,3 +5,7 @@ dist/
 !.env.example
 *.log
 .DS_Store
+
+# Ad-hoc capture superseded by fixtures/riot-lol/rest_getTeams.json (byte-identical
+# source, trimmed and sidecarred there). Kept out of the tree: 1.5 MB and full rosters.
+rest_getTeams_en.json

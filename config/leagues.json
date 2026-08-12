@@ -1,0 +1,182 @@
+{
+  "$schema": "see src/config/leagues.ts",
+  "$why": [
+    "WHAT THIS FILE IS. The set of leagues this product covers, and the tier of every league Riot",
+    "returns. It is a PRODUCT DECISION, not a transcription of anything upstream. The owner decided",
+    "on 2026-08-11 that phase one covers three international events (Worlds, MSI, First Stand) and",
+    "five regional leagues (LCK, LPL, LEC, LCS, LCP). Everything else Riot returns is marked minor.",
+    "",
+    "WHY IT IS A FILE AND NOT CODE. There is no machine-readable tier signal in Riot's API and there",
+    "cannot be one derived from it: getLeagues.priority is 1 for all 45 leagues, and displayPriority",
+    "is per-request UI state rather than a league property. Both verified exhaustively over the",
+    "2026-08-09 capture of getLeagues -- see docs/sources/lolesports-rest.md. So coverage has to be",
+    "stated somewhere, and it belongs in configuration that changes on a product decision.",
+    "",
+    "An earlier version of this file justified its contents by an observation of the lolesports.com",
+    "league picker. That justification is withdrawn: it was a single unrepeatable human observation",
+    "with no artifact, and it was never needed. The scope of this product does not require evidence",
+    "about Riot's website -- it requires a decision by the owner, which is what is recorded above.",
+    "",
+    "TIER GATES TWO THINGS, AND THEY ARE NOT THE SAME SET.",
+    "",
+    "  (a) Which matches have their teams resolved at all -- gated on the tier of the league the",
+    "      match is played under. All eight major slugs qualify, international events included: a",
+    "      Worlds match must resolve T1.",
+    "",
+    "  (b) Which leagues contribute rows to the team master table -- only majors with kind 'region'.",
+    "      International events must NOT contribute. getTeams homes seven active rows at Worlds and",
+    "      MSI, and none of them is a team that plays: five are 2011-era orgs (EPIK Gamer, Team",
+    "      GAMED.DE, against All authority, Pacific eSports, Xan) and two are region placeholder",
+    "      entities literally named 'LCS' and 'VCS' carrying those codes. Measured over the full",
+    "      1568-row getTeams capture of 2026-08-09.",
+    "",
+    "      This distinction was invisible while all fourteen majors were regional leagues. Narrowing",
+    "      to eight exposed it. That is why `kind` is required on every major entry.",
+    "",
+    "MEASURED under the eight-major table, against the full 1568-row getTeams capture (1176 active):",
+    "  - team index, regional majors only: 168 rows. By NAME: 168 distinct, ZERO collisions. By CODE:",
+    "    167 distinct, one collision (EG). Since 2026-08-11 the join key is NAME and code is only a",
+    "    fallback, because a code names the ORGANISATION rather than the squad: all seven LCK orgs",
+    "    with an academy team share a code across the pair and share no name. A code join therefore",
+    "    resolved an academy side to its parent and needed the tier gate to be safe; a name join does",
+    "    not. See src/sources/riot/rest/teams.ts and docs/sources/lolesports-rest.md.",
+    "  - including the international majors would add the seven junk rows described above and take",
+    "    the index to 175 -- no new collision today, but two of those codes are LCS and VCS.",
+    "  - over fixtures/riot-lol/rest_getSchedule.json: 60 of 160 sides resolve, 0 unresolved, 0",
+    "    ambiguous, 100 out of scope.",
+    "",
+    "Resolution is additionally gated on (a). That gate used to be the SAFETY mechanism -- without it,",
+    "a code join handed eleven sides in rest_getSchedule.json the wrong LCK org's id, and a wrong",
+    "identity is worse than an absent one. The name join removed that hazard, so the gate is now a",
+    "SCOPE decision: do not spend a lookup on a league we do not cover.",
+    "",
+    "AN EXPLICIT 'minor' AND AN ABSENT SLUG ARE DIFFERENT STATES. Absent means a league appeared",
+    "upstream after this file was last touched: it resolves to 'unclassified' and warns. Three",
+    "leagues appeared during 2026 (ewc_lol, cacg, fls -- known from the season restructure, not",
+    "measurable from a single-day capture), so that path is load-bearing."
+  ],
+  "leagues": [
+    {
+      "slug": "worlds",
+      "tier": "major",
+      "kind": "event",
+      "note": "International. Phase-one scope."
+    },
+    {
+      "slug": "msi",
+      "tier": "major",
+      "kind": "event",
+      "note": "International. Phase-one scope."
+    },
+    {
+      "slug": "first_stand",
+      "tier": "major",
+      "kind": "event",
+      "note": "International. Phase-one scope. No team is homed here in the 2026-08-09 getTeams capture, which is the expected shape for an event."
+    },
+    {
+      "slug": "lck",
+      "tier": "major",
+      "kind": "region",
+      "note": "70 active rows in the team table against ten real teams; the master table keeps historical orgs listed and that is fine."
+    },
+    { "slug": "lpl", "tier": "major", "kind": "region" },
+    { "slug": "lec", "tier": "major", "kind": "region" },
+    {
+      "slug": "lcs",
+      "tier": "major",
+      "kind": "region",
+      "note": "Alive in the 2026-08-09 capture: four matches in the five-day window. Note that lta_n / lta_s / lta_cross also exist in getLeagues with zero matches in that window -- the relationship between the LCS and LTA slugs is an open question, see SPEC.md section 9."
+    },
+    { "slug": "lcp", "tier": "major", "kind": "region" },
+
+    {
+      "slug": "ewc_lol",
+      "tier": "minor",
+      "note": "Esports World Cup. An international event, and therefore a plausible future major -- excluded from phase one as a product decision, not an API gap. fixtures/riot-lol/rest_getSchedule_ewc.json exists and was captured while this was a major; the test built on it now asserts the out-of-scope path instead."
+    },
+    {
+      "slug": "pcs",
+      "tier": "minor",
+      "note": "Was major before the 2026-08-11 scope decision. Eight sides in rest_getSchedule.json lose team identity as a result."
+    },
+    {
+      "slug": "cblol-brazil",
+      "tier": "minor",
+      "note": "Was major before the 2026-08-11 scope decision. Sixteen sides in rest_getSchedule.json lose team identity as a result -- the largest single effect of the narrowing."
+    },
+    {
+      "slug": "lla",
+      "tier": "minor",
+      "note": "Was major before the 2026-08-11 scope decision, with no recorded reason for being major while the other Latin American and LTA slugs were minor. That inconsistency is resolved by excluding it."
+    },
+    {
+      "slug": "ljl-japan",
+      "tier": "minor",
+      "note": "Was major before the 2026-08-11 scope decision. Two sides in rest_getSchedule.json lose team identity as a result."
+    },
+    {
+      "slug": "vcs",
+      "tier": "minor",
+      "note": "Was major before the 2026-08-11 scope decision. No VCS match appears in rest_getSchedule.json."
+    },
+    {
+      "slug": "kespa_cup",
+      "tier": "minor",
+      "note": "Excluded as a product decision. It is present in getLeagues and there is a KeSPA Cup match in rest_getSchedule.json -- in fact it is the lossy-state example, a 2026-08-10 match reported as completed."
+    },
+    {
+      "slug": "lck_challengers_league",
+      "tier": "minor",
+      "note": "Second teams. Its rosters share codes with the main LCK teams (DK, KT, HLE, NS, BFX, KRX, DNS), which is why match resolution is gated on tier and not only on the team table."
+    },
+    {
+      "slug": "tft_esports",
+      "tier": "minor",
+      "note": "A different game entirely; getLeagues returns it on the LoL path."
+    },
+
+    { "slug": "lta_n", "tier": "minor" },
+    { "slug": "lta_s", "tier": "minor" },
+    { "slug": "lta_cross", "tier": "minor" },
+    { "slug": "americas_cup", "tier": "minor" },
+    { "slug": "cacg", "tier": "minor" },
+    { "slug": "nacl", "tier": "minor" },
+    { "slug": "north_regional_league", "tier": "minor" },
+    { "slug": "south_regional_league", "tier": "minor" },
+    { "slug": "duelo_de_reyes", "tier": "minor" },
+    { "slug": "cd", "tier": "minor" },
+    { "slug": "emea_masters", "tier": "minor" },
+    { "slug": "turkiye-sampiyonluk-ligi", "tier": "minor" },
+    { "slug": "nlc", "tier": "minor" },
+    { "slug": "lfl", "tier": "minor" },
+    { "slug": "roadoflegends", "tier": "minor" },
+    { "slug": "liga_portuguesa", "tier": "minor" },
+    { "slug": "lit", "tier": "minor" },
+    { "slug": "rift_legends", "tier": "minor" },
+    { "slug": "les", "tier": "minor" },
+    { "slug": "primeleague", "tier": "minor" },
+    { "slug": "hitpoint_masters", "tier": "minor" },
+    { "slug": "esports_balkan_league", "tier": "minor" },
+    { "slug": "hellenic_legends_league", "tier": "minor" },
+    { "slug": "arabian_league", "tier": "minor" },
+    { "slug": "lcl", "tier": "minor" },
+    { "slug": "lco", "tier": "minor" },
+    { "slug": "fls", "tier": "minor" },
+    { "slug": "wqs", "tier": "minor" }
+  ],
+  "teamOverrides": [
+    {
+      "code": "EG",
+      "leagueSlug": "lcs",
+      "teamId": "103461966951059521",
+      "reason": "Evil Geniuses LG (LCS). A FALLBACK, not the primary mechanism, since 2026-08-11: the join is by name now, and getTeams names these two orgs distinctly ('Evil Geniuses LG' vs 'Evil Geniuses EU'), so if getSchedule uses the same names this override never fires. It is retained because EG appears in NEITHER committed schedule capture, so whether getSchedule writes the full name or a bare 'Evil Geniuses' is unverified. If it writes the bare name, the name lookup misses, the code lookup finds two rows, and this settles it. Delete only after a capture proves it unnecessary."
+    },
+    {
+      "code": "EG",
+      "leagueSlug": "lec",
+      "teamId": "109218871531830908",
+      "reason": "Evil Geniuses EU (LEC). See above."
+    }
+  ]
+}

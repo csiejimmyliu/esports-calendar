@@ -7,14 +7,16 @@ import { describe, expect, it } from 'vitest';
 import { formatMatchLine, parseArgs, selectUpcoming } from '../src/cli/format.js';
 import { createRiotRestLolAdapter, fixtureTransport, GLOBAL_SCOPE } from '../src/sources/riot/rest/adapter.js';
 import type { SourceMatch } from '../src/core/types.js';
-import { FIXTURE_CAPTURED_AT, loadFixture } from './fixtures.js';
+import { FIXTURE_CAPTURED_AT, loadFixture, realLeagueConfig } from './fixtures.js';
 
 const now = new Date(FIXTURE_CAPTURED_AT);
 const adapter = createRiotRestLolAdapter(
   fixtureTransport({
     schedule: loadFixture('riot-lol/rest_getSchedule.json'),
     leagues: loadFixture('riot-lol/rest_getLeagues.json'),
+    teams: loadFixture('riot-lol/rest_getTeams.json'),
   }),
+  realLeagueConfig(),
 );
 const all = (await adapter.fetchMatches(GLOBAL_SCOPE)).items;
 
@@ -52,7 +54,11 @@ describe('rendering', () => {
 
   it('renders 08:00Z as 16:00 Taipei', () => {
     expect(formatMatchLine(rows[0] as SourceMatch, 'Asia/Taipei', false)).toContain('16:00');
-    expect(formatMatchLine(rows[0] as SourceMatch, 'Asia/Taipei', false)).toContain('DK vs KT');
+    // Stage 0.5: the printed side is CODE#id, because the id existing at all is the deliverable
+    // and a name-only line cannot show the difference between resolved and unresolved.
+    expect(formatMatchLine(rows[0] as SourceMatch, 'Asia/Taipei', false)).toContain(
+      'DK#100725845018863243 vs KT#99566404579461230',
+    );
   });
 
   it('renders the same match differently in another zone', () => {
@@ -95,6 +101,7 @@ describe('parseArgs', () => {
       now: null,
       live: false,
       spoilers: false,
+      fixture: 'rest_getSchedule.json',
     });
   });
 

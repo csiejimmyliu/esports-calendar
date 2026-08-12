@@ -5,6 +5,22 @@
  * Nothing in this file may reference a source's vocabulary.
  */
 
+/**
+ * `'lol'` is the only value any code path produces today.
+ *
+ * `'val'` and `'cs'` are a **deferred capability, not pending work.** The owner's plan is LoL first
+ * and other titles once the LoL calendar is complete, so the dimension stays in the type rather
+ * than being removed and reintroduced — reintroducing it later would mean migrating every table
+ * keyed without it. What is retained alongside it, and equally has no consumer:
+ *
+ *   - fixtures/riot-val/**   three captures. The evidence that VALORANT shares Riot's backend and
+ *                            that `type: "show"` events exist. See docs/sources/valorant.md.
+ *   - fixtures/blast-cs/**   four captures. The evidence that shaped this interface most: no global
+ *                            schedule, no league tier, inverted TBD convention, HTTP 200 + `[]`.
+ *
+ * Nothing reads those fixtures. They are kept as the reason `Scope`, `SourceCapabilities` and the
+ * optional `league` exist at all — deleting them would leave the design unexplained.
+ */
 export type GameSlug = 'lol' | 'val' | 'cs';
 
 /** Opaque source-assigned id. Riot uses numeric snowflakes, BLAST uses UUIDs. Never parse it. */
@@ -59,6 +75,16 @@ export interface Tournament {
 // Match
 // ---------------------------------------------------------------------------
 
+/**
+ * `'cancelled'` is not producible from Riot REST: `KNOWN_STATES` in the adapter maps only
+ * `unstarted | inProgress | completed`, and an unrecognised upstream value becomes `unstarted` with
+ * a warning rather than being guessed at.
+ *
+ * It stays in the union because cancellation is a real thing that happens to real matches — a
+ * forfeit, a scrapped stage — and SPEC requires it as a named ingestion edge case. The sync layer
+ * will need it before any adapter emits it, since a match that vanishes from the feed is the shape
+ * a cancellation actually arrives in. Not a placeholder for a missing parse branch.
+ */
 export type MatchState = 'unstarted' | 'inProgress' | 'completed' | 'cancelled';
 
 /**
@@ -222,6 +248,15 @@ export interface ExternalRef {
   sourceId: string;
   game: GameSlug;
   externalId: ExternalId;
-  /** Set manually when automatic matching is wrong. Renames and merges are normal. */
+  /**
+   * This row was set by a human, so sync must not re-derive it. Renames and merges are normal, and a
+   * crosswalk with no manual escape hatch is a gap.
+   *
+   * Not the same thing as `config/leagues.json`'s `teamOverrides`, which decides which team an
+   * ambiguous *code* resolves to at parse time. That rule cannot live here: an adapter has no
+   * database (see the note above on Source* records). SPEC §5 tabulates the difference.
+   *
+   * No consumer until the crosswalk exists in stage 1.
+   */
   manualOverride: boolean;
 }

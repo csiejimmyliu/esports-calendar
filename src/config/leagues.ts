@@ -1,0 +1,138 @@
+/**
+ * The hand-maintained league coverage table and its team disambiguation overrides.
+ *
+ * This is configuration and not code because it is a product decision, not a derivation. Riot's
+ * `priority` is 1 for all 45 leagues and `displayPriority` is per-request UI state, so no tier can
+ * be computed from the API — but that is only why the tier cannot be *derived*. The reason a
+ * particular eight leagues are covered is that the owner chose them. See config/leagues.json.
+ *
+ * Nothing here is Riot-specific in shape: a slug, a tier, and a manual override are concepts SPEC
+ * already owns. The values happen to be Riot slugs because Riot is the only source.
+ */
+
+import { z } from 'zod';
+
+/** SPEC §5: ours to maintain. `unclassified` is what an unrecognised league becomes. */
+export type LeagueTier = 'major' | 'minor' | 'unclassified';
+
+/**
+ * Whether a league is a standing regional competition or a one-off international event.
+ *
+ * This is not decoration. It decides whether a league contributes rows to the team master table:
+ * `getTeams` homes seven active rows at Worlds and MSI and not one of them is a team that plays —
+ * five are 2011-era orgs and two are region placeholders literally named "LCS" and "VCS", carrying
+ * those codes. An event may need its matches resolved; it must never define who the teams are.
+ */
+export type LeagueKind = 'region' | 'event';
+
+const LeagueEntry = z.object({
+  slug: z.string().min(1),
+  /**
+   * Only the two decided values are accepted here. `unclassified` is not writable: it is the
+   * *absence* of an entry, and allowing it in the file would create two spellings of one state.
+   */
+  tier: z.enum(['major', 'minor']),
+  /**
+   * Required on every major entry — enforced in `createLeagueConfig`, not here, so the error can
+   * name the offending slug. Optional on minor entries because nothing reads it for them.
+   */
+  kind: z.enum(['region', 'event']).optional(),
+  note: z.string().optional(),
+});
+
+const TeamOverride = z.object({
+  code: z.string().min(1),
+  /** The slug of the league the *match* is played under, not the team's home league. */
+  leagueSlug: z.string().min(1),
+  teamId: z.string().min(1),
+  reason: z.string().min(1),
+});
+
+export const LeagueConfigFile = z
+  .object({
+    leagues: z.array(LeagueEntry).min(1),
+    teamOverrides: z.array(TeamOverride).default([]),
+  })
+  .passthrough(); // the `$why` prose blocks are part of the file and must not fail validation
+
+export type LeagueEntryDto = z.infer<typeof LeagueEntry>;
+export type TeamOverrideDto = z.infer<typeof TeamOverride>;
+
+export interface LeagueConfig {
+  /**
+   * `unclassified` for any slug absent from the file. Absence and an explicit `minor` are
+   * different states: `minor` is a decision, absence is a league that appeared upstream after the
+   * file was last touched. Only the latter warns.
+   */
+  tierFor(slug: string): LeagueTier;
+
+  /**
+   * Every slug marked major. This is the set that gates *which matches have their teams resolved*,
+   * and it deliberately includes international events — a Worlds match must resolve T1.
+   */
+  majorSlugs(): readonly string[];
+
+  /**
+   * The subset of majors that may contribute rows to the team master table: `kind: 'region'` only.
+   *
+   * Not the same set as `majorSlugs()`, and conflating the two is a real bug rather than a
+   * tidiness question — see LeagueKind. The distinction was invisible while all fourteen majors
+   * happened to be regional leagues; narrowing to eight exposed it.
+   */
+  teamHomeLeagueSlugs(): readonly string[];
+
+  /** The manual override for a code seen in a match of this league, if one is recorded. */
+  overrideFor(code: string, leagueSlug: string): TeamOverrideDto | undefined;
+}
+
+export function createLeagueConfig(raw: unknown): LeagueConfig {
+  const file = LeagueConfigFile.parse(raw);
+
+  /**
+   * Two passes, because a duplicated slug is the more fundamental complaint and must be the one
+   * reported. In one pass the first entry's missing `kind` throws before the duplicate is ever
+   * seen, and the reader is sent to fix the wrong thing.
+   */
+  const tiers = new Map<string, LeagueTier>();
+  for (const entry of file.leagues) {
+    if (tiers.has(entry.slug)) {
+      // A duplicated slug means two people disagreed in the same file. Refusing is the only
+      // honest answer; last-write-wins would bury the disagreement.
+      throw new Error(`config/leagues.json lists ${JSON.stringify(entry.slug)} more than once`);
+    }
+    tiers.set(entry.slug, entry.tier);
+  }
+  for (const entry of file.leagues) {
+    if (entry.tier === 'major' && entry.kind === undefined) {
+      // Defaulting would be the expensive mistake: an event silently treated as a region starts
+      // contributing placeholder rows to the team table, and nothing turns red.
+      throw new Error(
+        `config/leagues.json: major league ${JSON.stringify(entry.slug)} must declare ` +
+          `"kind": "region" or "kind": "event"`,
+      );
+    }
+  }
+
+  const overrides = new Map<string, TeamOverrideDto>();
+  for (const o of file.teamOverrides) {
+    const key = `${o.code} ${o.leagueSlug}`;
+    if (overrides.has(key)) {
+      throw new Error(
+        `config/leagues.json has two overrides for code ${o.code} in league ${o.leagueSlug}`,
+      );
+    }
+    overrides.set(key, o);
+  }
+
+  const major = file.leagues.filter((l) => l.tier === 'major').map((l) => l.slug);
+  const teamHomes = file.leagues
+    .filter((l) => l.tier === 'major' && l.kind === 'region')
+    .map((l) => l.slug);
+
+  return {
+    tierFor: (slug) => tiers.get(slug) ?? 'unclassified',
+    majorSlugs: () => major,
+    teamHomeLeagueSlugs: () => teamHomes,
+    overrideFor: (code, leagueSlug) => overrides.get(`${code} ${leagueSlug}`),
+  };
+}

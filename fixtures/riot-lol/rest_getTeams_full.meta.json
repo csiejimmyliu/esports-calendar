@@ -1,0 +1,40 @@
+{
+  "fixture": "rest_getTeams_full.json",
+  "source": "riot-rest-lol",
+  "request": {
+    "method": "GET",
+    "url": "https://esports-api.lolesports.com/persisted/gw/getTeams",
+    "queryParams": { "hl": "en-US" },
+    "pathParams": {},
+    "headers": {
+      "x-api-key": "<public static key, see .env.example RIOT_ESPORTS_API_KEY>",
+      "accept": "application/json"
+    }
+  },
+  "capturedOn": "2026-08-09T13:19:12Z",
+  "contents": "The full getTeams response: 1568 teams, players removed. This is the untrimmed sibling of rest_getTeams.json -- committed so the collision and coverage figures quoted in config/leagues.json and docs/sources/lolesports-rest.md are re-derivable from a clone instead of only from an ungitignored file on one machine. See tests/team-index-collisions.test.ts.",
+  "provenance": {
+    "status": "INFERRED, not recorded at capture time -- disclosed plainly rather than written in the voice of a verified capture.",
+    "sourceFile": "generated offline from rest_getTeams_en.json (repo root, gitignored, still carries players[] and must never be committed under any name) by applying only the stripField(players) transform below. No network request was made to produce this commit.",
+    "capturedOn": "inferred from rest_getTeams_en.json's filesystem mtime, 2026-08-09T13:19:12Z (`stat -f %Sm`). Not a request timestamp.",
+    "hl": "inferred, not verified against this file's own content in isolation. Two independent facts support en-US: (a) rest_getTeams.meta.json's `verification.byteIdenticalToPriorCapture` records that its 15:10:30Z live capture was byte-identical (1542967 bytes, cmp clean) to 'an undocumented curl taken earlier the same day' -- rest_getTeams_en.json is exactly 1542967 bytes and its mtime (13:19:12Z) is earlier the same day, so this is almost certainly that undocumented curl; (b) rest_getTeams.json (hl=en-US, verified) is byte-identical to this file after applying the same stripField(players) transform (see recapture.transform and tests/fixture-transform.test.ts) -- 71/71 rows match with zero diffs, which would not hold under a different locale since homeLeague.region is a translated field.",
+    "personalData": "players[] removed from every row, same rule and same reason as rest_getTeams.json (verbatim-except-players; see fixtures/README.md). Nothing else was trimmed -- this file keeps all 1568 rows, which is the entire reason it exists."
+  },
+  "recapture": {
+    "capturable": true,
+    "endpoint": "getTeams",
+    "params": { "hl": "en-US" },
+    "transform": [
+      {
+        "op": "stripField",
+        "path": "data.teams[].players",
+        "why": "players carries real people's names; SPEC excludes player data and the parser discards this field regardless, so removing it costs no test fidelity."
+      }
+    ]
+  },
+  "recaptureNotes": {
+    "command": "RIOT_ESPORTS_API_KEY=... npm run capture -- getTeams fixtures/riot-lol/rest_getTeams_full",
+    "cadence": "Low. This corpus should change only when it is deliberately re-measured (e.g. before widening coverage past the eight current leagues, per SPEC §9's open league-research question), not on a schedule. Re-capturing changes conclusions, not just bytes -- diff the collision figures before committing an update.",
+    "afterCapture": "The live response must be checked with npm run capture:check or a manual diff before this file is overwritten -- a silent overwrite would be exactly the 'weekly new reference weight' failure mode this fixture exists to avoid for rest_getTeams.json."
+  }
+}

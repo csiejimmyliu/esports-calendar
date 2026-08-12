@@ -2,7 +2,9 @@
  * HTTP access to Riot's REST esports API. The only file in the adapter that touches the network.
  *
  * Base: https://esports-api.lolesports.com/persisted/gw/
- * Auth: a static, publicly documented x-api-key, unchanged for years.
+ * Auth: a static x-api-key that the site ships to every browser. It worked unchanged across every
+ *       probe on 2026-08-09; nothing here establishes how long it has been stable, and the retry
+ *       path treats a 4xx as final precisely because a rotated key must fail loudly.
  *
  * The title is selected by the path segment `/persisted/{gw|val}/` — the domain is an alias and
  * the `sport` query parameter is ignored, so `gw` here means LoL regardless of hostname.

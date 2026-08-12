@@ -1,7 +1,21 @@
-# Source: LoL Esports (lolesports.com)
+# Source: LoL Esports GraphQL (lolesports.com) — DROPPED
 
-Probed 2026-08-09. Verified against `fixtures/lolesports/homeEvents.json` (5 events).
+Probed 2026-08-09. Verified against `fixtures/riot-lol/gql_homeEvents.json` (5 events).
 Corrections applied where the automated probe report was wrong — see "Corrections" at the end.
+
+> **This source is off the roadmap and was never implemented.** It was the intended primary for two
+> reasons — team ids and a trustworthy `match.state` — and REST then supplied both: `getTeams` gives
+> plain team ids in one unparameterised call, and `result == null` determines state exactly (7 of 7
+> unplayed, 0 of 73 played, exhaustive over one capture, encoded as a test). See
+> `lolesports-rest.md`.
+>
+> The note is kept for two things it is the only record of: the composite team id `{matchId}:{teamId}`,
+> which is why `ExternalId` is documented as opaque and never parsed; and the "Corrections" section,
+> which documents four specific ways an automated probe report was wrong.
+>
+> **`gql_homeEvents.json` can never be re-captured.** The persisted-query hash and client version it
+> was fetched with were not recorded, so nothing in this note can be re-verified against live. Treat
+> every claim below as frozen at 2026-08-09.
 
 ## Endpoint
 
@@ -26,16 +40,25 @@ One operation, three call shapes, differing only by variables:
 
 ### Fragility
 
-The persisted-query hash plus the pinned client version are tied to a **frontend build**, not to
-a credential. A frontend deploy can invalidate both. This is a higher-churn failure mode than a
-rotated API key.
+The persisted-query hash plus the pinned client version are tied to a **frontend build**, not to a
+credential. A frontend deploy can invalidate both. This is a higher-churn failure mode than a rotated
+API key.
 
-The older REST API (`esports-api.lolesports.com/persisted/gw/...`, static `x-api-key`) is still
-alive as of 2026-08-09 and churns less often. **It is nonetheless the secondary source, not the
-primary** — see `lolesports-rest.md` for why. Summary: it exposes no team ids at all, and its
-single `state` field reports not-yet-played playoff matches as `completed`.
+*Confidence: **architectural inference, never observed.** No hash invalidation was witnessed — the
+probe worked on the day it ran and was never repeated. The reasoning is sound and it was cited as a
+reason for the source ranking, so it is worth being clear that it is reasoning. It is also now
+permanently untestable from this repo, since the hash and client version were not recorded.*
 
-Use REST as failover when the persisted hash breaks, and for cursor-based historical backfill.
+The older REST API (`esports-api.lolesports.com/persisted/gw/...`, static `x-api-key`) is alive and
+churns less often.
+
+> **Superseded.** This section originally concluded that REST "is nonetheless the secondary source, not
+> the primary", because it exposes no team ids and its `state` field is wrong for unplayed playoff
+> matches. Both objections were then answered — `getTeams` for the first, `result` for the second —
+> and REST became the only source. "Use REST as failover and for cursor-based historical backfill" no
+> longer describes anything: there is nothing to fail over from. The backfill point stands on its own
+> merits (`getSchedule?leagueId=` returns full history with working cursors) and is tracked in
+> `lolesports-rest.md`.
 
 ## Response shape
 
@@ -109,17 +132,27 @@ were English even under `hl=zh-TW`.
    `League.defaultStreamUrl`. So `capabilities.streamUrls: false` is Riot's final state rather
    than a placeholder, and adapters do not warn per match about it. BLAST inverts this — it does
    supply per-match URLs, which is why stream availability is a declared capability at all.
-2. **Is the REST API alive?** One curl. If yes, it likely becomes the primary.
+2. ~~**Is the REST API alive?**~~ **Answered: yes, and it became the primary — then the only source.**
+   `riot-rest-lol` is implemented, tested against golden fixtures, and GraphQL is dropped. This entry
+   was left un-struck while the four around it were struck, which made the note look undecided about
+   something the repo had already settled.
 3. ~~`league.displayPriority.status` as a tier filter.~~ **Disproved.** It is per-request UI state,
    not a league property: CACG returned `hidden`/position 1000 here and `selected`/position 5 from
    REST `getLeagues` the same day, and LCK and LPL are `not_selected`. See `lolesports-rest.md`.
    Tier classification must be maintained by us.
 4. ~~2-0 sweep in a Bo3 — what is game 3's state?~~ **Resolved: `"unneeded"`.** Confirmed from the
    VALORANT probe against the same backend. See `valorant.md`.
-5. ~~Other `event.type` values.~~ **Resolved: `"show"` exists**, and such events carry **no `match`
-   and no `blockName`**. All 80 events in this sample were `type: "match"` — absence in a fixture
-   is not evidence of absence upstream. Filter to `type == "match"`; enumerate `type` exhaustively
-   and warn on unknown values.
+5. ~~Other `event.type` values.~~ **Resolved: `"show"` exists**, and such events carry **no `match` and
+   no `blockName`**. Absence in a fixture is not evidence of absence upstream. Filter to
+   `type == "match"`; enumerate `type` exhaustively and warn on unknown values.
+
+   *Two corrections to how this was previously worded.* It said "all **80** events in this sample were
+   `type: "match"`" — 80 is the **REST** capture's count; this note's sample is **5 events** (stated at
+   the top). The denominator was borrowed from the wrong fixture. And `"show"` was observed in the
+   **VALORANT** capture (2 of 80 events), not in any LoL capture; that it exists for LoL too is an
+   inference from the shared backend, and a reasonable one, but no LoL `show` event has been seen. The
+   mitigation is unaffected either way, which is why the cost of the inference is zero — but it was
+   written in a declarative voice, which is the failure mode this repo's own rules are about.
 
 ## Corrections to the automated probe report
 

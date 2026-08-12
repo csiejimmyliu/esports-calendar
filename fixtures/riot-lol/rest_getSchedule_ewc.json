@@ -1,0 +1,301 @@
+{
+  "data": {
+    "schedule": {
+      "pages": {
+        "older": null,
+        "newer": null
+      },
+      "events": [
+        {
+          "startTime": "2026-07-15T09:00:00Z",
+          "state": "completed",
+          "type": "match",
+          "blockName": "Groups",
+          "league": {
+            "name": "Esports World Cup",
+            "slug": "ewc_lol"
+          },
+          "match": {
+            "id": "116855104460702314",
+            "flags": [
+              "hasVod"
+            ],
+            "teams": [
+              {
+                "name": "Sentinels",
+                "code": "SEN",
+                "image": "http://static.lolesports.com/teams/1767769784669_Sentinels_2020_Icon.png",
+                "result": {
+                  "outcome": "win",
+                  "gameWins": 1
+                },
+                "record": {
+                  "wins": 1,
+                  "losses": 2
+                }
+              },
+              {
+                "name": "Team Secret",
+                "code": "TS",
+                "image": "http://static.lolesports.com/teams/1656693717651_TS.png",
+                "result": {
+                  "outcome": "loss",
+                  "gameWins": 0
+                },
+                "record": {
+                  "wins": 0,
+                  "losses": 2
+                }
+              }
+            ],
+            "strategy": {
+              "type": "bestOf",
+              "count": 1
+            }
+          }
+        },
+        {
+          "startTime": "2026-07-15T09:00:00Z",
+          "state": "completed",
+          "type": "match",
+          "blockName": "Groups",
+          "league": {
+            "name": "Esports World Cup",
+            "slug": "ewc_lol"
+          },
+          "match": {
+            "id": "116855104460702316",
+            "flags": [
+              "hasVod"
+            ],
+            "teams": [
+              {
+                "name": "Gen.G Esports",
+                "code": "GEN",
+                "image": "http://static.lolesports.com/teams/1773829250929_GENGLOGO_GOLD.png",
+                "result": {
+                  "outcome": "win",
+                  "gameWins": 1
+                },
+                "record": {
+                  "wins": 2,
+                  "losses": 0
+                }
+              },
+              {
+                "name": "Karmine Corp",
+                "code": "KC",
+                "image": "http://static.lolesports.com/teams/1704714951336_KC.png",
+                "result": {
+                  "outcome": "loss",
+                  "gameWins": 0
+                },
+                "record": {
+                  "wins": 2,
+                  "losses": 1
+                }
+              }
+            ],
+            "strategy": {
+              "type": "bestOf",
+              "count": 1
+            }
+          }
+        },
+        {
+          "startTime": "2026-07-15T10:10:00Z",
+          "state": "completed",
+          "type": "match",
+          "blockName": "Groups",
+          "league": {
+            "name": "Esports World Cup",
+            "slug": "ewc_lol"
+          },
+          "match": {
+            "id": "116855104460702330",
+            "flags": [
+              "hasVod"
+            ],
+            "teams": [
+              {
+                "name": "GAM Esports",
+                "code": "GAM",
+                "image": "http://static.lolesports.com/teams/1643263093448_GAMyellow.png",
+                "result": {
+                  "outcome": "loss",
+                  "gameWins": 0
+                },
+                "record": {
+                  "wins": 1,
+                  "losses": 2
+                }
+              },
+              {
+                "name": "T1",
+                "code": "T1",
+                "image": "http://static.lolesports.com/teams/1726801573959_539px-T1_2019_full_allmode.png",
+                "result": {
+                  "outcome": "win",
+                  "gameWins": 1
+                },
+                "record": {
+                  "wins": 2,
+                  "losses": 1
+                }
+              }
+            ],
+            "strategy": {
+              "type": "bestOf",
+              "count": 1
+            }
+          }
+        },
+        {
+          "startTime": "2026-07-15T11:20:00Z",
+          "state": "completed",
+          "type": "match",
+          "blockName": "Groups",
+          "league": {
+            "name": "Esports World Cup",
+            "slug": "ewc_lol"
+          },
+          "match": {
+            "id": "116855104460702300",
+            "flags": [
+              "hasVod"
+            ],
+            "teams": [
+              {
+                "name": "FURIA",
+                "code": "FUR",
+                "image": "http://static.lolesports.com/teams/FURIA---black.png",
+                "result": {
+                  "outcome": "loss",
+                  "gameWins": 0
+                },
+                "record": {
+                  "wins": 0,
+                  "losses": 2
+                }
+              },
+              {
+                "name": "G2 Esports",
+                "code": "G2",
+                "image": "http://static.lolesports.com/teams/G2-FullonDark.png",
+                "result": {
+                  "outcome": "win",
+                  "gameWins": 1
+                },
+                "record": {
+                  "wins": 1,
+                  "losses": 2
+                }
+              }
+            ],
+            "strategy": {
+              "type": "bestOf",
+              "count": 1
+            }
+          }
+        },
+        {
+          "startTime": "2026-07-15T12:30:00Z",
+          "state": "completed",
+          "type": "match",
+          "blockName": "Groups",
+          "league": {
+            "name": "Esports World Cup",
+            "slug": "ewc_lol"
+          },
+          "match": {
+            "id": "116855104460702344",
+            "flags": [
+              "hasVod"
+            ],
+            "teams": [
+              {
+                "name": "Beijing JDG Esports",
+                "code": "JDG",
+                "image": "http://static.lolesports.com/teams/1627457924722_29.png",
+                "result": {
+                  "outcome": "win",
+                  "gameWins": 1
+                },
+                "record": {
+                  "wins": 2,
+                  "losses": 1
+                }
+              },
+              {
+                "name": "LYON",
+                "code": "LYON",
+                "image": "http://static.lolesports.com/teams/1743717443673_isotypelyon-03.png",
+                "result": {
+                  "outcome": "loss",
+                  "gameWins": 0
+                },
+                "record": {
+                  "wins": 0,
+                  "losses": 2
+                }
+              }
+            ],
+            "strategy": {
+              "type": "bestOf",
+              "count": 1
+            }
+          }
+        },
+        {
+          "startTime": "2026-07-19T12:30:00Z",
+          "state": "completed",
+          "type": "match",
+          "blockName": "Finals",
+          "league": {
+            "name": "Esports World Cup",
+            "slug": "ewc_lol"
+          },
+          "match": {
+            "id": "116855104460702380",
+            "flags": [
+              "hasVod",
+              "isSpoiler"
+            ],
+            "teams": [
+              {
+                "name": "Karmine Corp",
+                "code": "KC",
+                "image": "http://static.lolesports.com/teams/1704714951336_KC.png",
+                "result": {
+                  "outcome": "loss",
+                  "gameWins": 0
+                },
+                "record": {
+                  "wins": 2,
+                  "losses": 1
+                }
+              },
+              {
+                "name": "Dplus KIA",
+                "code": "DK",
+                "image": "http://static.lolesports.com/teams/1673260049703_DPlusKIALOGO11.png",
+                "result": {
+                  "outcome": "win",
+                  "gameWins": 3
+                },
+                "record": {
+                  "wins": 3,
+                  "losses": 0
+                }
+              }
+            ],
+            "strategy": {
+              "type": "bestOf",
+              "count": 5
+            }
+          }
+        }
+      ]
+    }
+  }
+}
