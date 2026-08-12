@@ -193,6 +193,14 @@ only the narrower claim that a tier cannot be derived, which is why coverage liv
 `cs2-blast.md` are kept as the evidence that shaped the interface, not as pending work; `cs2-blast.md`
 has one unreviewed finding about `/brackets` that is now also recorded in SPEC §4.
 
+`docs/sources/riot-rest-parameters.md` is the parameter reference for the Riot REST endpoints this
+project touches — every claim in it cites the probe id that measured it, and `npm run probe --
+<group>` re-derives the numbers live. `docs/DATA_FLOW.md` is the wire-to-domain map: which JSON
+field becomes which `SourceMatch`/`SourceTeam`/`SourceLeague` field, with diagrams for the
+three-endpoint join and where each `WarningCode` fires. Read it before touching the adapter
+boundary — it is where "what does `getTeams` actually supply" is answered without re-reading
+`parse.ts` and `teams.ts` line by line.
+
 `src/core/source.ts` is **final for Stage 0**, not a draft. `config/leagues.json` is the coverage
 decision and the manual team overrides; it cannot be derived from the API and changes on a product
 decision. `docs/CLAUDE_CODE_PLAYBOOK.md` is how to run a session — it was rewritten 2026-08-11 and its

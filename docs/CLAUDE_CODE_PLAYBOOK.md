@@ -91,7 +91,19 @@ the source is a bad fit, not a reason to put an agent in the sync path.
 
 ## Stage-specific notes
 
-Numbered against the current SPEC §8. Stages 0, 0.5, and 0.7 are done.
+Numbered against the current SPEC §8. Stages 0, 0.5, 0.6, 0.7, and 0.8 are done.
+
+**Stage 0.8 — API boundary survey.** Also discovered mid-session rather than planned: a Stage 1
+alignment check surfaced that no parameter or boundary claim about the Riot REST API had actually
+been measured — `getTeams`'s "no other parameters" line was an assumption in the declarative
+voice, three named endpoints (`getTournamentsForLeague`, `getStandings`, `getCompletedEvents`) had
+never been called by anything, and the entire team-identity name join rested on two fixtures
+captured three days apart under different locales. Require every claim to cite a probe id, and
+require the probe log itself to be committed (`docs/probes/riot-rest/*.probe.json`), not just its
+prose summary — the same "encode the claim as a test, not only as a paragraph" instinct as 0.7's
+`crawl-incomplete` field, applied to documentation instead of code. The one probe worth insisting
+on before any other: a same-instant locale A/B on `getTeams`, because a mismatch there would have
+been a Stage 1 blocker for the whole team-identity design, not a footnote.
 
 **Stage 0.7 — schedule pagination.** Discovered as a blocker while preparing Stage 1, not planned in
 advance: `fetchMatches` was one unparameterised `getSchedule` call, returning roughly 1.5 days of
