@@ -61,13 +61,18 @@ mark where a probe changed what was believed here.
   evidence so far. Past matches are in scope (SPEC §1), so historical backfill needs this direction,
   and nothing here establishes that it terminates at all, or in how many pages.
 - Endpoints: `getSchedule`, `getLeagues`, `getTournamentsForLeague`, `getTeams`,
-  `getEventDetails`, `getStandings`, `getLive`, `getCompletedEvents`. **As of Stage 0.8, all eight
-  have been probed at least once — see `docs/sources/riot-rest-parameters.md`.** The four this
-  project never calls (`getTournamentsForLeague`, `getStandings`, `getLive`, `getCompletedEvents`)
-  all returned real data when probed: `getCompletedEvents` in particular returned 300 real historical
-  events for one league in one call, which bears directly on the still-open "past matches" product
-  question (SPEC §1 vs the owner's later comment that they are "no longer important" — unresolved,
-  see the Stage 0.8 plan's open items).
+  `getEventDetails`, `getStandings`, `getLive`, `getCompletedEvents` — **and `getGames`, found only
+  by cross-referencing community documentation** (`vickz84259.github.io/lolesports-api-docs`,
+  `kingjakeu/lolesports`'s unofficial guide) after this project's own live probing had already run;
+  it had never been named here at all. **As of Stage 0.8, all nine have been probed at least once —
+  see `docs/sources/riot-rest-parameters.md`.** The five this project never calls
+  (`getTournamentsForLeague`, `getStandings`, `getLive`, `getCompletedEvents`, `getGames`) all
+  returned real data when probed. `getCompletedEvents` bears directly on the still-open "past
+  matches" product question (SPEC §1 vs the owner's later comment that they are "no longer
+  important" — unresolved, see the Stage 0.8 plan's open items) — but the first probe of it used
+  the wrong parameter: `leagueId` is silently ignored, `tournamentId` is the real one, and a
+  same-run comparison against a no-params anchor caught the mistake before it was written up as a
+  confirmed capability. See `riot-rest-parameters.md`'s `doc-cross-check` group.
 - **Unrecognised query parameters are silently ignored, not rejected** — verified by sending
   `getSchedule?...&thisParamDoesNotExist=1` and getting a byte-identical response to the
   unparameterised anchor. This bounds every "endpoint X has no parameter Y" claim in this file: none

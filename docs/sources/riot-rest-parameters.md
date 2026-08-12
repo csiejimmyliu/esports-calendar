@@ -24,7 +24,7 @@ exactly what the `errors` group needed to keep. It reuses `RiotRestClient`'s con
 |---|---|---|---|
 | `hl` | No (client pins it; endpoint has a default) | `en-US` used throughout. `zh-TW` accepted and translates `blockName` (`"Week 3"` → `"第3週"`) but **not** `league.slug` (probe `hl-zh-tw`). A malformed locale (`xx-XX`) is rejected outright: **HTTP 400** (probe `hl-invalid`) — no silent fallback to English. |
 | `pageToken` | No | Base64, decodes to `newer::<snowflake>` / `older::<snowflake>` (established Stage 0.7). A **malformed** (non-base64) token is silently ignored — the response is byte-identical to the unparameterised anchor (49006 bytes both) — the API falls back to the default first page rather than erroring (probe `malformed-page-token`). A **well-formed but meaningless** token (`older::0`, base64) is accepted: HTTP 200, 0 events, no bounds check on the snowflake value (probe `meaningless-token`). |
-| `leagueId` | No | Single value scopes to one league (`league-id-lck`: 80 events, `leagues=lck`). **Comma-joined values return the union of both leagues** — `leagueId=<lck>,<ewc>` returned events from `lck` *and* `ewc_lol` (probe `multi-league-id-csv`). This is exploratory only: not documented anywhere else, not implied by any code, not used by `src/`. |
+| `leagueId` | No | Single value scopes to one league (`league-id-lck`: 80 events, `leagues=lck`). **The multi-value encoding matters and the two forms are NOT equivalent.** A comma-joined value (`leagueId=<lck>,<ewc>`) returns the union of both leagues (probe `multi-league-id-csv`). The repeated-key array form implied by community documentation (`?leagueId=<lck>&leagueId=<ewc>`) returns only the **last** occurrence — `ewc_lol` only, `lck` dropped (probe `schedule-leagueid-array-syntax`). Neither form is documented anywhere else, implied by any code, or used by `src/`; both are exploratory. |
 | any unrecognised name | — | **Silently ignored.** `thisParamDoesNotExist=1` returned a byte-identical body to the anchor (probe `unknown-param`). Consequence: no "endpoint X has no parameter Y" claim in this repo, including several above, can be falsified by adding a nonsense param and seeing an error — only a byte-for-byte diff against a same-run anchor is meaningful, which is what every probe in this file that makes a "no effect" claim actually did. |
 
 `leagueId` + `pageToken` together: **untested this run** (probe `league-id-and-page-token`). LCK's
@@ -46,7 +46,7 @@ request**.
 | Param | Required? | Observed domain | Omitted / wrong |
 |---|---|---|---|
 | `hl` | No | Same locale pin. **Confirmed the identity join's locale-stability premise same-instant**: `name` is byte-identical under `hl=zh-TW` vs the same-run `hl=en-US` anchor for **all 1568 compared teams**, zero mismatches (probe `teams-hl-zh-tw`). This supersedes the previous evidence, which was two fixtures captured **three days apart** under different `hl` values — see the correction below. |
-| `id` | No | **Narrows to exactly the requested team.** `id=<EG LCS teamId>` returned a 477-byte, 1-team response against a 1540971-byte, 1568-team anchor (probe `teams-id-filter`). |
+| `id` | No | **Narrows to exactly the requested team.** `id=<EG LCS teamId>` (numeric external id) returned a 477-byte, 1-team response against a 1540971-byte, 1568-team anchor (probe `teams-id-filter`). **A team slug also works** — `id=t1` returned exactly T1 (probe `teams-id-slug`), confirming community documentation this project's own probing had no reason to think to test. Both forms narrow; which form the API prefers when both could match the same row is untested. |
 
 > **`docs/sources/lolesports-rest.md:266` is wrong, and is corrected there.** It states `getTeams`
 > "takes no other parameters; returns everything" — an assumption in the declarative voice that was
@@ -71,16 +71,19 @@ No pagination on `getTeams` — `data.pages` is absent entirely from the respons
 | `hl` | No | Same locale pin. |
 | `id` | Yes | Single snowflake only. A **comma-joined pair is rejected outright** — HTTP 400, not partial or first-only (probe `event-details-two-ids`; the earlier suspicion of "only the first id honoured" is wrong — it errors instead). An **unknown-but-well-formed** id (`999999999999999999`) returns **HTTP 200 with `{"data": {"event": null}}`** (probe `event-details-bogus`) — **not** the `{"errors": [...]}` shape `RiotErrorEnvelope` checks for. A caller must check for a null `event` explicitly; the existing error-envelope check would not catch this. |
 
-### `getTournamentsForLeague`, `getStandings`, `getCompletedEvents`, `getLive`
+### `getTournamentsForLeague`, `getStandings`, `getCompletedEvents`, `getLive`, `getGames`
 
-Named in `lolesports-rest.md:57-58`, never called by any code path, never probed before this stage.
+Named in `lolesports-rest.md:57-58` (all but `getGames`), never called by any code path. Four were
+never probed before this stage; `getGames` was never even named in this project until a
+cross-reference against community documentation found it — see "The doc-cross-check group" below.
 
 | Endpoint | Params tried | Result |
 |---|---|---|
 | `getTournamentsForLeague` | `leagueId` | HTTP 200. Returns a nested `data.leagues[].tournaments[]` structure; one LCK league carried a tournament id used by the next probe (probe `tournaments-for-league`). |
 | `getStandings` | `tournamentId` | HTTP 200, 26595 bytes. Response nests `data.standings[].stages[].sections[].matches[]`, and each match's teams carry both `id` **and** `slug` (e.g. `T1`, `"t1"`) — richer than `getSchedule`'s teams, which have no id at all (probe `standings`). Not investigated further; noted for a future stage that needs standings. |
-| `getCompletedEvents` | `leagueId` | HTTP 200, **300** real historical LCK events, span `2026-07-26` → `2026-08-11` (probe `completed-events`). Shape differs from `getSchedule`: `league` here is `{name}` only, **no `slug`**; `match.type` is `"normal"` (a field `getSchedule`'s `ScheduleMatch` schema doesn't have); games carry a `vods[]` array (out of scope per CLAUDE.md, noted only because it's there). This endpoint is the one with direct bearing on the still-open "past matches" product question — see the open items list in the Stage 0.8 plan. |
+| `getCompletedEvents` | `leagueId` first (probe `completed-events`, wrong — see correction below), then `tournamentId` (probe `completed-events-tournamentid`, correct) | **`leagueId` is silently ignored — the documented parameter is `tournamentId`.** `leagueId=<lck>` produced a response byte-for-byte identical in event count to a no-params anchor (probe `completed-events-no-params` vs `completed-events-leagueid`, both 300 events): the earlier "300 real LCK events" claim from this stage's own first pass described the endpoint's global default scope, not an LCK-filtered result. `tournamentId=<lck tournament id>` genuinely scopes it — 20 events, differing from the anchor (probe `completed-events-tournamentid`). Shape differs from `getSchedule`: `league` here is `{name}` only, **no `slug`**; `match.type` is `"normal"` (a field `getSchedule`'s `ScheduleMatch` schema doesn't have); games carry a `vods[]` array (out of scope per CLAUDE.md, noted only because it's there). This endpoint is the one with direct bearing on the still-open "past matches" product question — see the open items list in the Stage 0.8 plan — but any future use of it must scope by `tournamentId`, not `leagueId`. |
 | `getLive` | `hl` | HTTP 200, `{"events": []}` — same inconclusive result as the earlier probe in `lolesports-rest.md:461` (probe `live`). Still not during a confirmed broadcast. n=2 now, both empty, both off-hours. |
+| `getGames` | `id` (a game id, not a match id) | HTTP 200. Returns `data.games[]`, each `{id, state, number, vods[]}` — a lighter, more focused endpoint than `getEventDetails`, keyed one level below a match (probe `games-by-id`). Not investigated further; noted for whenever VOD or per-game state data is wanted, which is currently out of scope per CLAUDE.md. |
 
 ## Boundary findings that change how a claim in `lolesports-rest.md` should be read
 
@@ -106,16 +109,37 @@ Named in `lolesports-rest.md:57-58`, never called by any code path, never probed
    pass this straight through as success. Nothing in `src/` calls `getEventDetails` today, so this is
    not a live bug — it's a finding for whenever it is wired up. *Basis: measured, this run, n=1,
    probe `event-details-bogus`.*
-6. **`getCompletedEvents` is a real, working, 300-row endpoint for one league**, not a documented-but-
-   absent capability. Whatever the owner decides about "past matches are no longer important" vs
-   SPEC §1's "in scope", the data behind that decision is one `leagueId`-scoped call away, not an
-   unknown. *Basis: measured, this run, n=1, probe `completed-events`.*
+6. **`getCompletedEvents` is a real, working endpoint**, not a documented-but-absent capability —
+   but it is scoped by `tournamentId`, **not** `leagueId`. The first pass of this stage got this
+   wrong: `leagueId` is silently ignored (finding 3 already established that unrecognised params
+   are ignored; this endpoint's own parameter name turned out to be one this project guessed
+   incorrectly), so the "300 real LCK events" originally reported was the endpoint's global default
+   scope, not a league-filtered result. Whatever the owner decides about "past matches are no
+   longer important" vs SPEC §1's "in scope", the data behind that decision is one
+   `tournamentId`-scoped call away, not an unknown — but a future implementation must use the right
+   parameter. *Basis: measured, this run, n=1 each, probes `completed-events-no-params`,
+   `completed-events-leagueid`, `completed-events-tournamentid`.*
+7. **`getSchedule`'s two multi-value `leagueId` encodings are not equivalent.** Comma-joined
+   (`A,B`) returns the union; repeated keys (`A&leagueId=B`) return only the last occurrence.
+   Neither is documented or used by `src/`, but a future implementation reaching for the "obvious"
+   array syntax (repeated keys) would silently drop every league but the last one named. *Basis:
+   measured, this run, n=1, probe `schedule-leagueid-array-syntax`.*
+8. **A `getGames` endpoint exists and this project never knew it.** Found only by cross-referencing
+   community documentation after the first five probe groups were already run and written up —
+   the clearest evidence that black-box probing alone does not find every boundary; enumerating
+   *known* endpoints and testing *their* parameters cannot surface an endpoint nobody thought to
+   name in the first place. *Basis: measured, this run, n=1, probe `games-by-id`; existence
+   cross-referenced against `vickz84259.github.io/lolesports-api-docs` and
+   `kingjakeu/lolesports`'s unofficial guide.*
 
 ## Probe log
 
-Five groups, 27 probes attempted, 26 sent (1 skipped — see below), all live against
+Six groups, 33 probes attempted, 32 sent (1 skipped — see below), all live against
 `https://esports-api.lolesports.com/persisted/gw/`, captured 2026-08-12. Full machine-readable logs:
-`docs/probes/riot-rest/{schedule-params,catalog-params,errors,unmapped-endpoints,event-details}.probe.json`.
+`docs/probes/riot-rest/{schedule-params,catalog-params,errors,unmapped-endpoints,event-details,doc-cross-check}.probe.json`.
+The first five groups were pure black-box probing; `doc-cross-check` is a sixth, added after
+cross-referencing community documentation surfaced gaps in the first five — see its own section
+below for why that step matters on its own.
 
 ### `schedule-params` (7 probes, 1 skipped)
 
@@ -203,10 +227,13 @@ Five groups, 27 probes attempted, 26 sent (1 skipped — see below), all live ag
 - **`standings`** — why: complete the never-probed set. Got: works; noted its teams carry an `id`
   and a `slug` that `getSchedule`'s teams don't have — filed as a fact for a future stage, not
   investigated further here (no code changes in this stage).
-- **`completed-events`** — why: the one with product consequences, see finding 6. Got: 300 real
-  rows for one league, one call. Changed: converts "past matches, unresolved API question" into
-  "past matches, resolved API capability, unresolved product decision" — the two were conflated
-  before this probe.
+- **`completed-events`** — why: the one with product consequences, see finding 6. Got: 300 rows,
+  one call. Changed at the time: converted "past matches, unresolved API question" into "past
+  matches, resolved API capability, unresolved product decision". **Later corrected in the
+  `doc-cross-check` group**: the `leagueId` param this probe used turns out to be silently ignored
+  — the 300 rows were not actually LCK-scoped. See finding 6's rewrite and `doc-cross-check` below.
+  Left in this log entry rather than deleted, per the house convention of keeping the wrong claim
+  visible with its correction attached, not silently edited away.
 - **`live`** — why: one more data point on a previously-inconclusive result. Got: still `{"events":
   []}`, still off-hours. Nothing changed; the existing "re-probe during a broadcast" advice stands
   unmodified.
@@ -235,6 +262,49 @@ Five groups, 27 probes attempted, 26 sent (1 skipped — see below), all live ag
   page 3. Changed: nothing — this matches and reconfirms the existing `fixtures/README.md` Open item
   (6-page probe from a different session reached 480 events / `2026-07-19` without terminating); 3
   pages was enough to confirm the direction works, not to move that number.
+
+### `doc-cross-check` (6 probes)
+
+**Why this group exists.** The first five groups were pure black-box probing: pick a question,
+send a request, read the response. Asked directly ("did you look this API's usage up online?") the
+honest answer for the first five groups was no — every claim in this file up to this point came
+from live requests and reading this repo's own existing docs, never from a third party. That is not
+automatically a gap (this is an undocumented API; a probe is often stronger evidence than someone
+else's blog post), but it is an *incomplete method* on its own: black-box probing can only test
+questions someone thought to ask, and it cannot find an endpoint nobody named. Cross-referencing
+`https://vickz84259.github.io/lolesports-api-docs/` and
+`https://github.com/kingjakeu/lolesports/blob/main/doc/unofficial-riot-api-guide.md` (community
+reverse-engineering, not official Riot docs — no source for this API is official) surfaced one
+missing endpoint and one probable parameter mistake in this stage's own prior work. Both were then
+tested live rather than taken on the community docs' word, since those are themselves unverified.
+
+- **`games-by-id`** — why: `getGames` appears in both community docs and was never named anywhere
+  in this project before this probe, not even in the "known but unmapped" list. Expected: might not
+  exist, might be an alias for `getEventDetails`. Got: exists, HTTP 200, distinct and lighter shape
+  (`{id, state, number, vods[]}` per game). Changed: finding 8 above; the endpoint table above gained
+  a row.
+- **`completed-events-no-params`** — why: establish the baseline `getCompletedEvents` returns with
+  no scoping parameter at all, so the next two probes have something real to diff against (not a
+  hardcoded expectation). Got: 300 events. Not a finding on its own — the anchor.
+- **`completed-events-leagueid`** — why: re-check the earlier `unmapped-endpoints` group's own
+  `leagueId`-scoped probe against this anchor, since finding 3 (unknown params are silently
+  ignored) already gave reason to doubt it. Expected: could go either way, this is why it needed
+  checking rather than assuming. Got: **byte-for-byte identical event count to the no-params
+  anchor.** Changed: retracts the earlier "300 real LCK events" framing — see finding 6's rewrite.
+- **`completed-events-tournamentid`** — why: the community-documented parameter, tested for real
+  rather than trusted. Got: 20 events, genuinely different from the anchor. Changed: confirms
+  `tournamentId` is the real scoping parameter, closing the question the previous two probes opened.
+- **`schedule-leagueid-array-syntax`** — why: the earlier `multi-league-id-csv` probe (in
+  `schedule-params`) used a comma-joined value; community docs describe `leagueId` as an "array",
+  which in typical query-string convention means repeated keys, a different wire shape never
+  tested. Expected: probably the same result as the comma-joined form. Got: **different** — only
+  the last repeated key won, dropping the first league entirely. Changed: finding 7 above; a
+  genuinely new fact neither this project's own probing nor a plain reading of the community docs
+  would have produced alone — it took testing both encodings against each other.
+- **`teams-id-slug`** — why: community docs describe `getTeams`' `id` param as a team slug; this
+  project's own `teams-id-filter` probe (in `catalog-params`) had already confirmed a *numeric* id
+  works, with no reason to also try a slug. Got: `id=t1` also narrows correctly. Changed: confirms
+  the community docs' description as an additional, not competing, fact — both forms work.
 
 ### Skipped probes
 
