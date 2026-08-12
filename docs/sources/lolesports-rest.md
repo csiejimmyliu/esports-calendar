@@ -23,12 +23,37 @@ Probed 2026-08-09 against `fixtures/riot-lol/rest_getSchedule.json` (80 events, 
   it has been stable — "unchanged for years" was asserted in an earlier draft with no evidence and is
   withdrawn. The client treats a 4xx as final precisely so a rotated key fails loudly.*
 - **Locale**: `hl=en-US`. Use en-US as the canonical identity locale for the whole system.
-- **Pagination**: `data.schedule.pages.{older,newer}` return non-null base64 cursors on an
-  unparameterised `getSchedule` call, and both are null on the `leagueId`-scoped capture used for
-  `rest_getSchedule_ewc.json` (consistent with that call returning a single page). **What is not
-  known: the query parameter name a cursor is sent back as.** It has never been recorded or probed
-  anywhere in this repo. An earlier version of this line said "real, working", which stated a
-  request nobody has made as a fact about a field that is merely present and non-null.
+- **Pagination — verified, exhaustive over one forward crawl, 2026-08-12T02:25Z.** `getSchedule`
+  accepts `pageToken`. The value is base64; it decodes to `newer::<snowflake>` or
+  `older::<snowflake>`, and the snowflakes are the same id space as `match.id`.
+
+  Forward crawl from an unparameterised call, following `data.schedule.pages.newer`: **6 requests,
+  page sizes 80/80/80/80/80/36 = 436 events**, horizon `2026-08-09T15:00Z` → `2026-10-10T16:00Z`.
+  The sixth page returned `pages.newer: null`. *Basis: exhaustive over this one crawl; n = 6
+  requests, 436 events. It is not evidence about any other day.*
+
+  **A page is 80 events, not a time range.** Page 6 alone spans a month while page 1 spans four
+  days — window width is a function of match density, so no time-based assumption about page width
+  is safe, and none is made. `pages.newer === null` is the only termination condition used.
+
+  Page spans are contiguous and ascending, and no `match.id` appeared on two pages. *Basis:
+  exhaustive over the committed crawl corpus (`fixtures/riot-lol/rest_getSchedule_crawl_2026-08-12/`);
+  asserted in `tests/fixture-crawl.test.ts`, not only stated here.*
+
+  **`leagueId` does not silently truncate, and it is not a single-page endpoint — an earlier
+  version of this line said it was.** `leagueId=98767991310872058` (lck) returned 80 events with
+  `pages.newer: null` and **`pages.older` non-null**. Cross-checked against the global forward
+  crawl over the overlapping range: zero events in the set difference in either direction. *Basis:
+  cross-checked, one league, one day.* The earlier claim — that a `leagueId` call "returns that
+  league's full history in one page" — generalised from `ewc_lol`'s 28-event capture, which merely
+  *fit* inside the 80-event page; it does not, and `rest_getSchedule_ewc.meta.json`'s
+  `verification.pages` note is corrected to match.
+
+  **The `older` (backward) direction is unprobed to termination.** A 6-page backward crawl from the
+  same anchor point (2026-08-12) did **not** terminate: 480 events, back to `2026-07-19`,
+  `pages.older` still non-null on the sixth page. Forward and backward are not symmetric on the
+  evidence so far. Past matches are in scope (SPEC §1), so historical backfill needs this direction,
+  and nothing here establishes that it terminates at all, or in how many pages.
 - Endpoints: `getSchedule`, `getLeagues`, `getTournamentsForLeague`, `getTeams`,
   `getEventDetails`, `getStandings`, `getLive`, `getCompletedEvents`
 
@@ -148,11 +173,15 @@ Absent from `getSchedule` entirely. Unresolved whether `getEventDetails` or `get
 ## What REST is good for
 
 - **Failover** when the GraphQL persisted hash is invalidated by a frontend deploy.
-- **Historical backfill, plausibly** — its `pages.{older,newer}` cursors are non-null on an
-  unparameterised call (the GraphQL ones were null even there), which is evidence the endpoint is
-  paginated. It is not evidence that backfill *works*: the query parameter a cursor is sent back as
-  has never been recorded or tried. Downgraded from an earlier "actually work" — see the Pagination
-  line above and `src/sources/riot/rest/adapter.ts`'s `timeWindow` comment for the same correction.
+- **Forward pagination works, verified (Stage 0.7).** `fetchMatches` crawls `data.schedule.pages.newer`
+  via `pageToken` to exhaustion — see the Pagination section above and
+  `fixtures/riot-lol/rest_getSchedule_crawl_2026-08-12/`. `capabilities.timeWindow` stays `false`
+  regardless: the adapter uses the cursor to fetch the whole forward horizon, not to narrow to a
+  requested range, which is the opposite of what that flag means.
+- **Historical backfill is a separate, still-open question.** It needs the `older` direction, which
+  a 6-page backward probe did not terminate (see Pagination above) — so unlike the forward
+  direction, this is not yet "plausible with an unmeasured page count", it is unmeasured whether it
+  terminates at all.
 - `record { wins, losses }` if standings are ever wanted (out of scope for v1).
 
 ## Scope filtering problem
@@ -455,12 +484,21 @@ an inconclusive result, not evidence that streams are absent. Re-probe during an
 
 ## Also captured: `getSchedule?leagueId=<id>`
 
-*Verified 2026-08-09.* `getSchedule` accepts a `leagueId` and returns that league's full history in
-one page — 28 events for `ewc_lol`, both `pages` cursors `null`, every event carrying
-`league.slug: "ewc_lol"`. The unparameterised call returns a ~5-day window around now; this one
-does not. Useful for backfill, and it is how `rest_getSchedule_ewc.json` was captured: the
-unparameterised window contained no team playing outside its own home league, so cross-league
-resolution had nothing to test against.
+*Verified 2026-08-09, and corrected 2026-08-12 — see below.* `getSchedule` accepts a `leagueId`.
+For `ewc_lol` it returned 28 events in one page, both `pages` cursors `null`, every event carrying
+`league.slug: "ewc_lol"`. It is how `rest_getSchedule_ewc.json` was captured: the unparameterised
+window contained no team playing outside its own home league, so cross-league resolution had
+nothing to test against.
+
+> **Correction, 2026-08-12: `leagueId` is not a single-page endpoint — it generalised from too
+> small a league.** This section originally said a `leagueId` call "returns that league's full
+> history in one page". `lck`'s history does not fit in one: `leagueId=98767991310872058` returned
+> 80 events (the same page size as the unparameterised call) with `pages.newer: null` but
+> **`pages.older` non-null** — a genuinely paginated result, not a single page. `ewc_lol`'s 28
+> events simply fit inside the 80-event page, which made a page-limited endpoint look unlimited.
+> Cross-checked: the 80 LCK events agree exactly with the equivalent slice of the global forward
+> crawl over their overlapping range (zero events in the set difference either way). See the
+> Pagination section above for the full measurement.
 
 > **`ewc_lol` left coverage on 2026-08-11**, so this fixture no longer exercises the path it was
 > captured for. It was not deleted: the test built on it now asserts the *opposite* behaviour — that a

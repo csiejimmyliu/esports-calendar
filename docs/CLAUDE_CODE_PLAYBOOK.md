@@ -91,7 +91,18 @@ the source is a bad fit, not a reason to put an agent in the sync path.
 
 ## Stage-specific notes
 
-Numbered against the current SPEC §8. Stages 0 and 0.5 are done.
+Numbered against the current SPEC §8. Stages 0, 0.5, and 0.7 are done.
+
+**Stage 0.7 — schedule pagination.** Discovered as a blocker while preparing Stage 1, not planned in
+advance: `fetchMatches` was one unparameterised `getSchedule` call, returning roughly 1.5 days of
+future, which cannot back FR-2's "every covered match past and future". Require the pagination
+parameter to be *measured against the live API*, not assumed from a field being present and
+non-null — that was exactly the mistake the pre-0.7 `timeWindow` comment made. A model will
+naturally want to bound the crawl by a hardcoded day count; require it to stop on
+`pages.newer === null` instead, since page width is a function of match density, not time. Require
+the partial-crawl test (a middle page failing) before the happy path, the same idempotency-first
+instinct as Stage 1's own note below — NFR-4 (partial failure isolation) says a truncated crawl must
+still return what it has, not throw the near-now slice away.
 
 **Stage 1 — schema and sync.** Require the idempotency test *before* the sync implementation: "write
 the test that runs sync twice and asserts zero duplicate rows, then make it pass." Also require the

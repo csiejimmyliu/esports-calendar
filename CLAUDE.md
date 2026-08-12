@@ -44,11 +44,13 @@ requirements on 2026-08-11; everything older had been extrapolated by a model an
 - **Adapter boundary.** No source's URLs, credentials, identifiers, or response shapes leak above the
   adapter interface.
 - **A capability flag describes the code, not the endpoint.** `riot-rest-lol` declares
-  `timeWindow: false` because `fetchMatches` sends no cursor — and, separately, because the query
-  parameter a cursor would actually be sent back as has never been recorded or probed (the
-  `pages.{older,newer}` fields are confirmed non-null on an unparameterised call, which is weaker
-  than confirming pagination works end to end; see `src/sources/riot/rest/adapter.ts` and
-  `docs/sources/lolesports-rest.md`). And `explicitState: false` although a `state` field exists,
+  `timeWindow: false` even though Stage 0.7 gave `fetchMatches` a real cursor: the query parameter
+  is `pageToken`, base64, decoding to `newer::<snowflake>` — verified 2026-08-12 by crawling forward
+  to exhaustion (6 requests, 436 events, terminal `pages.newer === null`; see
+  `fixtures/riot-lol/rest_getSchedule_crawl_2026-08-12/` and `docs/sources/lolesports-rest.md`). The
+  flag stays `false` because `fetchMatches` uses that cursor to crawl the *whole* forward horizon,
+  not to narrow to one — the opposite of what `timeWindow: true` would mean, and the `window`
+  argument is still ignored outright. And `explicitState: false` although a `state` field exists,
   because the adapter overrides it. A flag that overstates the implementation is worse than an
   absent one, since the sync layer branches on it. Pin the flag to the behaviour in a test.
 - **Filter is not follow.** Filtering the overview is view state and must issue no write. Following is

@@ -335,9 +335,12 @@ fetches per scope; Riot returns a single global scope. Shaping to the weaker cap
 **Capabilities are declared, not assumed.** Sources differ in what they can do, not only in field
 names. `SourceCapabilities` makes the sync layer branch honestly instead of discovering nulls at
 runtime. A capability describes **what the adapter actually does**, not what the endpoint could
-support: `riot-rest-lol` declares `timeWindow: false` even though `getSchedule`'s cursors work,
-because `fetchMatches` sends no cursor. A flag that overstates the code is worse than an absent one,
-because the sync layer branches on it. There is a test pinning the flag to the behaviour.
+support: `riot-rest-lol` declares `timeWindow: false` even though, as of Stage 0.7,
+`fetchMatches` sends a real cursor (`pageToken`, verified 2026-08-12 — see
+`docs/sources/lolesports-rest.md`) — because it uses that cursor to crawl the whole forward horizon
+to exhaustion, not to narrow to a requested range, which is the opposite of what the flag means. A
+flag that overstates the code is worse than an absent one, because the sync layer branches on it.
+There is a test pinning the flag to the behaviour.
 
 **`league` is optional.** BLAST has `tournament → stage → match` only; its `circuit` is a year tag.
 
@@ -682,6 +685,7 @@ One stage at a time. Do not start the next unprompted.
 |---|---|---|
 | **0** ✅ | Source adapter interface + `riot-rest-lol`. No DB, no server. | A CLI prints the next 7 days of a covered league in correct Taipei time. Golden fixture + parser test exist. |
 | **0.5** ✅ | Team identity: the `getTeams` narrowed join. | Every non-TBD side in a covered league resolves; second teams resolve to nothing rather than to their parent; an ambiguous code warns and resolves nothing. |
+| **0.7** ✅ | `getSchedule` forward pagination: `fetchMatches` crawls `pages.newer` to exhaustion instead of returning one ~5-day window. | The adapter returns the full forward horizon Riot has (verified 2026-08-12: 6 requests, 436 events, terminal `pages.newer === null`), not one page. A crawl that cannot finish returns what it has and says so (`crawl-incomplete` + `diagnostics.crawlComplete`), never throwing away the near-now page. `timeWindow` stays `false` and the pinning test still agrees. A multi-page golden fixture exists whose recapture instruction is "crawl until `newer` is null", not "replay these tokens". Added because a database built on the pre-0.7 fetch (~1.5 days of future) cannot support FR-2's overview; discovered while preparing Stage 1. The `older` (backward) direction is probed but unresolved — a 6-page backward crawl did not terminate — and is needed before historical backfill; see `docs/sources/lolesports-rest.md`. |
 | **1** | Schema, source registry, identity crosswalk, idempotent sync, source health + canary scheduling. | Sync twice → zero duplicates. TBD matches persist. A deliberately broken source does not fail the run. A canary catches an empty parse **and stays quiet through an off-season**. |
 | **2** | `follow` + `selection` + JSON read/write API. Two endpoint groups: overview and my-calendar. | The FR-1 rules are a pure function with table-driven tests, covering at minimum: exclude one match of a followed team; unfollow keeps hand-picked matches; a reschedule carries the selection; a TBD side resolving pulls the match in. NFR-8 has a test. |
 | **3** | Web: overview page (filter / follow / pick) + calendar page. Anonymous, no account. | Full flow works with no account. Applying a filter issues no write (FR-2). Spoiler-free is built in, not retrofitted. Past matches browsable without revealing scores. |

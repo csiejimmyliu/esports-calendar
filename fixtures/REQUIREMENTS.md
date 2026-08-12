@@ -134,3 +134,30 @@ challengers league is excluded rather than matched by a sloppy prefix check), ea
 This fixture is not part of the locale problem (already `hl=en-US`, verified) and isn't a candidate
 for this recapture round — listed here only for completeness, so a future "recapture everything" day
 has one place to check all four files against.
+
+## `rest_getSchedule_crawl_2026-08-12/`
+
+Added Stage 0.7. Already `hl=en-US` and not part of the locale problem either — listed for the same
+reason as the ewc fixture. **This one is not swapped in by hand**: re-derive it with
+`npm run capture -- getSchedule <dir> --crawl`, never by copying pages from elsewhere, because a
+`pageToken` from one crawl does not describe a page boundary in another (see `fixtures/README.md`'s
+Crawl fixtures section). What a replacement crawl needs, all asserted in `tests/fixture-crawl.test.ts`:
+
+- **At least 2 pages.** A 1-page crawl proves nothing pagination-specific — it's indistinguishable
+  from `rest_getSchedule.json` with extra ceremony.
+- **Every page but the last has a non-null `pages.newer`; the last has `null`.** This is the
+  termination condition `fetchMatches`' crawl relies on — a replacement that never reaches `null`
+  within `maxPages` (20) is not a valid replacement, it's a page-cap failure.
+- **Page spans are contiguous and ascending**, and **no `match.id` appears on two pages.** Both are
+  exhaustive-over-this-corpus claims in `docs/sources/lolesports-rest.md`'s Pagination section;
+  a replacement that breaks either invalidates that prose, not just this fixture.
+- **At least one `lck` match somewhere in the crawl** — keeps the corpus connected to a covered
+  league rather than being pure plumbing. `lck` specifically only because it's what the rest of
+  `riot-lol/`'s fixtures already use as their canonical "does resolution work" league; any covered
+  regional league would satisfy the actual requirement.
+
+**Not required**: a specific page count or a specific horizon. `crawl.meta.json`'s
+`recapture.crawl.pagesCaptured` and `.horizonUtc` are measurements of one crawl, not a contract —
+page count is a function of match density (verified: page 6 alone spans a month while page 1 spans
+four days), so a replacement crawl taking 5 pages or 9, or reaching a different horizon, is not a
+failure as long as the conditions above hold.

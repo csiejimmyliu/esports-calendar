@@ -82,8 +82,9 @@ appears, and assert in tests only what the committed file can hold.
 
 ```
 riot-lol/    gql_homeEvents.json, rest_getSchedule.json, rest_getSchedule_2026-08-11.json,
-             rest_getSchedule_ewc.json, rest_getLeagues.json, rest_getTeams.json,
-             rest_getTeams_full.json, rest_getEventDetails.json
+             rest_getSchedule_ewc.json, rest_getSchedule_crawl_2026-08-12/ (six pages, one sidecar),
+             rest_getLeagues.json, rest_getTeams.json, rest_getTeams_full.json,
+             rest_getEventDetails.json
 riot-val/    getSchedule.json, getLeagues.json, getEventDetails.json
 blast-cs/    bounty-2026-season-2_{matches,brackets}.json
              esports-world-cup-2026-cs2_{matches,brackets}.json
@@ -125,6 +126,34 @@ trimmed to different jobs:
 does not require keeping the one field that carries real names. `tests/fixture-transform.test.ts`
 proves the 71-row file is exactly what you get by applying the recorded transform to the full one,
 so the "two files, one relationship" claim is checked, not just asserted in prose.
+
+### Crawl fixtures — a fixture in several files
+
+`rest_getSchedule_crawl_2026-08-12/` (Stage 0.7) is a different shape from every other fixture
+here: several `page*.json` files and **one** `crawl.meta.json`, not a sidecar per page.
+
+A per-page sidecar could not honestly exist. `getSchedule`'s pagination cursor (`pageToken`) is
+base64 for `newer::<snowflake>`, and a snowflake from this capture selects a slice of history that
+is no longer on a page boundary once the schedule has moved on — so "page 3's sidecar records the
+`pageToken` that produced it" would describe a request that, replayed later, does not reproduce
+page 3 of anything. The one sidecar instead records the crawl **strategy**: start unparameterised,
+follow `data.schedule.pages.newer` through the `pageToken` parameter, stop when it is `null`, cap
+at `maxPages`. `npm run capture -- getSchedule <dir> --crawl` re-derives a crawl fixture from that
+instruction; `npm run capture:refresh -- <dir>` re-runs it and diffs page 1 by shape against what
+is committed. **Never hand-replay the recorded tokens** — they are not the fixture, the instruction
+that produced them is.
+
+The sidecar's `recapture.crawl.pagesCaptured` and `.horizonUtc` are measurements of the one crawl
+that produced this corpus, not a contract. Page count is a function of match density (verified
+2026-08-12: a page is 80 events, and page 6 alone spans a month while page 1 spans four days), so a
+recapture that takes 5 pages or 9, or reaches a different horizon, is not a failure — what must
+still hold is termination, contiguity, and no duplicate match id across pages, all asserted in
+`tests/fixture-crawl.test.ts` against the committed corpus.
+
+Committed **minified**, matching `rest_getSchedule.json`'s density rather than
+`rest_getSchedule_2026-08-11.json`'s or `rest_getSchedule_ewc.json`'s pretty-printing. Like
+`rest_getTeams_full.json`, this corpus is read by tests, not by people, and `capture:refresh`'s
+structural diff — not a byte diff — is what makes it reviewable.
 
 ## Sidecars
 
@@ -231,7 +260,9 @@ unlabelled, they read like unfinished tasks. They are not:
   cross-league resolution path it was captured for. It is kept deliberately: the test on it now asserts
   the opposite behaviour — an uncovered league still yields matches and team names, just no resolved
   ids — which is the assertion that decides whether narrowing coverage is safe.
-- **The cursor parameter name for `getSchedule` pagination has never been probed.** See the
-  `timeWindow` comment in `src/sources/riot/rest/adapter.ts` and the Pagination line in
-  `docs/sources/lolesports-rest.md`. Needed before historical backfill is implemented, or before
-  claiming `timeWindow: true`.
+- **The `older` (backward) pagination direction is unprobed.** Stage 0.7 resolved the `newer`
+  direction — `pageToken`, terminating at `pages.newer === null` — but a 6-page backward probe on
+  2026-08-12 did **not** terminate (480 events, back to 2026-07-19, `pages.older` still non-null).
+  Past matches are in scope (SPEC §1), so historical backfill needs this and nothing here
+  establishes that it terminates at all. See the Pagination section in
+  `docs/sources/lolesports-rest.md`.

@@ -36,7 +36,7 @@
     "hl": "verified. Sent explicitly; blockName values are English (\"Groups\", \"Quarterfinals\", \"Finals\").",
     "capturedOn": "verified. Recorded at request time.",
     "leagueId": "verified. 116838530616006090 is the id of slug ewc_lol in rest_getLeagues.json. All 28 returned events carry league.slug ewc_lol.",
-    "pages": "verified. Both cursors are null: this parameterised response is a single page, unlike the unparameterised getSchedule.",
+    "pages": "verified for this response: both cursors are null, meaning ewc_lol's 28 events fit inside one 80-event page. CORRECTED 2026-08-12: this does NOT mean a leagueId call is single-page in general -- lck's leagueId call returned 80 events with pages.older non-null, a genuinely paginated result. See the leagueId section of docs/sources/lolesports-rest.md.",
     "state": "All 28 events report state \"completed\" and every team has a result, so this capture exercises no lossy-state correction. That path stays covered by rest_getSchedule.json."
   },
   "recapture": {
