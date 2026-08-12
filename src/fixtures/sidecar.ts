@@ -45,12 +45,42 @@ const SelectByKeyOp = z.object({
 export const TransformOp = z.discriminatedUnion('op', [StripFieldOp, SelectByKeyOp]);
 export type TransformOp = z.infer<typeof TransformOp>;
 
+/**
+ * A crawl fixture's recapture instruction — added Stage 0.7 for the `rest_getSchedule_crawl_…`
+ * directory fixtures.
+ *
+ * The `endpoint`/`params` a crawl sidecar carries describe only the *starting* request
+ * (unparameterised). `crawl` describes what happens after: follow `tokenPath` through
+ * `pageParam` until `terminateWhen`. This is deliberately an instruction, not a record of the
+ * tokens actually sent — `pageToken` decodes to a snowflake, and replaying a stale one selects a
+ * slice of history that is no longer on a page boundary once the schedule has moved on. A fixture
+ * is a crawl fixture exactly when this block is present; there is no separate `kind` flag to drift
+ * out of sync with it.
+ */
+const CrawlSpec = z.object({
+  strategy: z.literal('pageTokenForward'),
+  pageParam: z.literal('pageToken'),
+  /** Dot path into the raw response where the next token lives, e.g. `data.schedule.pages.newer`. */
+  tokenPath: z.string().min(1),
+  terminateWhen: z.string().min(1),
+  /** Safety bound on a recapture, not a target — see the adapter's own MAX_SCHEDULE_PAGES. */
+  maxPages: z.number().int().positive(),
+  pageFilePattern: z.string().min(1),
+  /** MEASURED on this capture, not expected. Page count is a function of match density; a
+   *  recapture taking a different number of pages is not a failure. */
+  pagesCaptured: z.number().int().positive(),
+  /** The latest `startTime` reached before termination on this capture — also a measurement. */
+  horizonUtc: z.string().min(1),
+});
+export type CrawlSpec = z.infer<typeof CrawlSpec>;
+
 const RecaptureBlock = z.discriminatedUnion('capturable', [
   z.object({
     capturable: z.literal(true),
     endpoint: z.string().min(1),
     params: z.record(z.string(), z.string()),
     transform: z.array(TransformOp),
+    crawl: CrawlSpec.optional(),
   }),
   z.object({
     capturable: z.literal(false),

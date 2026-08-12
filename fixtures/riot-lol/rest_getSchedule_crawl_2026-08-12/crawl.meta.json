@@ -1,0 +1,43 @@
+{
+  "fixture": "rest_getSchedule_crawl_2026-08-12",
+  "source": "riot-rest-lol",
+  "request": {
+    "method": "GET",
+    "url": "https://esports-api.lolesports.com/persisted/gw/getSchedule",
+    "queryParams": {
+      "hl": "en-US"
+    },
+    "headers": {
+      "x-api-key": "<public static key, see .env.example RIOT_ESPORTS_API_KEY>"
+    }
+  },
+  "capturedOn": "2026-08-12T02:55:44.518Z",
+  "contents": "A whole forward crawl, not one page. 6 pages, 436 events total (80/80/80/80/80/36), horizon 2026-08-09T15:00:00Z -> 2026-10-10T16:00:00Z. Page 6's pages.newer is null, which is the termination condition Stage 0.7's fetchMatches relies on. Captured under hl=en-US, matching the identity locale the client pins — unlike rest_getSchedule.json, there is no known locale discrepancy here.",
+  "whyThisFixtureExists": "rest_getSchedule.json (2026-08-09) is one unparameterised call and covers ~5 days. Stage 0.7 makes fetchMatches follow data.schedule.pages.newer until it is null, and nothing in the tree proved that terminates or exercised the multi-page code path. This corpus is that proof: it is a measurement of one crawl (page count and horizon are NOT expected constants — see recapture.crawl below), asserted in tests/fixture-crawl.test.ts. It carries no per-match edge-case assertions on purpose; those stay on rest_getSchedule.json, which is the only fixture with the future-dated-yet-completed row and the exact TBD/lossy-state counts a fresh capture cannot reproduce (see fixtures/REQUIREMENTS.md).",
+  "verification": {
+    "termination": "verified 2026-08-12 by crawling to exhaustion: page 6 of 6 has pages.newer === null.",
+    "contiguity": "verified 2026-08-12, exhaustive over this one crawl: page spans are ascending and non-overlapping, and the 436 match ids are pairwise distinct across all six pages. Asserted in tests/fixture-crawl.test.ts, not only stated here.",
+    "pageWidthIsNotTime": "page 6 alone spans a month (2026-09-10 -> 2026-10-10) while page 1 spans four days; a page is 80 events, never a time range. Basis: this one crawl."
+  },
+  "recapture": {
+    "capturable": true,
+    "endpoint": "getSchedule",
+    "params": {
+      "hl": "en-US"
+    },
+    "transform": [],
+    "crawl": {
+      "strategy": "pageTokenForward",
+      "pageParam": "pageToken",
+      "tokenPath": "data.schedule.pages.newer",
+      "terminateWhen": "tokenPath is null",
+      "maxPages": 20,
+      "pageFilePattern": "page{n}.json",
+      "pagesCaptured": 6,
+      "horizonUtc": "2026-10-10T16:00:00Z"
+    }
+  },
+  "recaptureNotes": {
+    "note": "Re-derive with `npm run capture -- getSchedule <dir> --crawl`, never by replaying pages.newer from this capture. pageToken decodes to newer::<snowflake>; a snowflake from 2026-08-12 selects a slice of history that no longer sits on a page boundary once the schedule has moved on, so a replayed token is a different request that only looks like a reproduction. `pagesCaptured` (6) and `horizonUtc` are what THIS crawl happened to reach, not a contract — a recapture that takes 5 pages or 9, or reaches a different horizon, is not a failure. What must still hold: termination (some page has pages.newer === null), contiguity, and no duplicate match id across pages — see tests/fixture-crawl.test.ts."
+  }
+}

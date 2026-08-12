@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 
 import { createLeagueConfig } from '../src/config/leagues.js';
 import type { LeagueConfig } from '../src/config/leagues.js';
@@ -9,6 +9,23 @@ export function loadFixture(relativePath: string): unknown {
 
 /** The instant `fixtures/riot-lol/*` was captured. Every fixture-backed test pins to this. */
 export const FIXTURE_CAPTURED_AT = '2026-08-09T00:00:00Z';
+
+/**
+ * The instant `fixtures/riot-lol/rest_getSchedule_crawl_2026-08-12/` was captured — three days
+ * after FIXTURE_CAPTURED_AT, which is why it is a second constant rather than a moved one. Moving
+ * the shared constant would break every relative-date assertion built on rest_getSchedule.json for
+ * a reason unrelated to the code (CLAUDE.md: fixture-backed tests inject a fixed reference clock).
+ */
+export const CRAWL_FIXTURE_CAPTURED_AT = '2026-08-12T02:55:44.518Z';
+
+/** Load a crawl fixture's pages in page order (page1, page2, … — numeric, not lexical). */
+export function loadCrawlFixture(relativeDir: string): unknown[] {
+  const dirUrl = new URL(`../fixtures/${relativeDir}/`, import.meta.url);
+  const names = readdirSync(dirUrl)
+    .filter((n) => /^page\d+\.json$/.exec(n))
+    .sort((a, b) => Number(/^page(\d+)\.json$/.exec(a)?.[1]) - Number(/^page(\d+)\.json$/.exec(b)?.[1]));
+  return names.map((n) => JSON.parse(readFileSync(new URL(n, dirUrl), 'utf8')));
+}
 
 /**
  * The real, shipped tier table. Tests that assert on real fixtures use this one, so that a change

@@ -59,7 +59,7 @@ async function main(): Promise<void> {
   const client = makeClient(apiKey);
 
   const metaPath = fixturePath.replace(/\.json$/, '.meta.json');
-  const sidecar = await loadSidecar(FIXTURES_ROOT, { jsonPath: fixturePath, metaPath });
+  const sidecar = await loadSidecar(FIXTURES_ROOT, { jsonPath: fixturePath, metaPath, kind: 'single' });
   if (!sidecar.recapture.capturable) {
     process.stderr.write(`${fixturePath} is not capturable: ${sidecar.recapture.reason}\n`);
     process.exit(1);

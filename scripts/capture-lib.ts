@@ -21,18 +21,51 @@ export const MAX_REQUESTS_PER_RUN = 20;
 export const MIN_REQUEST_SPACING_MS = 1000;
 
 export interface FixtureEntry {
-  /** Path to the `.json`, relative to fixtures/. */
+  /** Path to the `.json`, relative to fixtures/. For a crawl entry, the directory itself (no
+   *  extension) — the basename other tooling matches against `sidecar.fixture`. */
   jsonPath: string;
-  /** Path to the `.meta.json`, relative to fixtures/. */
+  /** Path to the `.meta.json`, relative to fixtures/. For a crawl entry, `<dir>/crawl.meta.json`. */
   metaPath: string;
+  kind: 'single' | 'crawl';
+  /** Crawl entries only: page files, relative to fixtures/, in page order (page1, page2, …,
+   *  never lexical order — page10 must not sort before page2). */
+  pages?: string[];
 }
 
-/** Walk fixtures/ recursively and pair every `<name>.json` with its `<name>.meta.json`. */
+const CRAWL_META_NAME = 'crawl.meta.json';
+
+/** `page12.json` -> 12, for numeric (not lexical) ordering. */
+function pageNumber(filename: string): number {
+  const match = /^page(\d+)\.json$/.exec(filename);
+  if (!match) throw new Error(`crawl page file does not match 'page<n>.json': ${filename}`);
+  return Number(match[1]);
+}
+
+/**
+ * Walk fixtures/ recursively. Pairs every `<name>.json` with its `<name>.meta.json`, EXCEPT a
+ * directory containing `crawl.meta.json` — Stage 0.7's multi-page fixture shape — which is
+ * emitted as one entry and not walked into, so its `page*.json` children are never separately
+ * paired with a sidecar that does not exist for them (a per-page sidecar cannot honestly describe
+ * a `pageToken` recapture — see the doc comment on `CrawlSpec`).
+ */
 export async function listFixtures(root: string = FIXTURES_ROOT): Promise<FixtureEntry[]> {
   const out: FixtureEntry[] = [];
 
   async function walk(dir: string): Promise<void> {
     const entries = await readdir(dir, { withFileTypes: true });
+    if (entries.some((e) => e.isFile() && e.name === CRAWL_META_NAME)) {
+      const pageFiles = entries
+        .filter((e) => e.isFile() && /^page\d+\.json$/.exec(e.name))
+        .map((e) => e.name)
+        .sort((a, b) => pageNumber(a) - pageNumber(b));
+      out.push({
+        jsonPath: relative(root, dir),
+        metaPath: relative(root, join(dir, CRAWL_META_NAME)),
+        kind: 'crawl',
+        pages: pageFiles.map((name) => relative(root, join(dir, name))),
+      });
+      return;
+    }
     for (const entry of entries) {
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
@@ -42,6 +75,7 @@ export async function listFixtures(root: string = FIXTURES_ROOT): Promise<Fixtur
         out.push({
           jsonPath: relative(root, full),
           metaPath: relative(root, metaFull),
+          kind: 'single',
         });
       }
     }
