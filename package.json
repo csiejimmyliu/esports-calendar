@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "capture": "tsx scripts/capture-fixture.ts",
     "capture:check": "tsx scripts/capture-check.ts",
-    "capture:refresh": "tsx scripts/capture-refresh.ts"
+    "capture:refresh": "tsx scripts/capture-refresh.ts",
+    "probe": "tsx scripts/probe-api.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
