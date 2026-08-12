@@ -24,9 +24,20 @@
  *   RIOT_ESPORTS_API_KEY=... npm run probe -- errors
  *   RIOT_ESPORTS_API_KEY=... npm run probe -- unmapped-endpoints
  *   RIOT_ESPORTS_API_KEY=... npm run probe -- event-details
+ *   RIOT_ESPORTS_API_KEY=... npm run probe -- doc-cross-check
  *
- * One group per invocation — the full survey is ~27 requests, MAX_REQUESTS_PER_RUN is 20, and a
+ * One group per invocation — the full survey is ~33 requests, MAX_REQUESTS_PER_RUN is 20, and a
  * group corresponds to one question-cluster in docs/sources/riot-rest-parameters.md's Probe log.
+ *
+ * `doc-cross-check` exists because the first five groups were pure black-box probing, with no
+ * check against what the community has already reverse-engineered. Cross-referencing
+ * https://vickz84259.github.io/lolesports-api-docs/ and
+ * https://github.com/kingjakeu/lolesports/blob/main/doc/unofficial-riot-api-guide.md after the
+ * fact surfaced a real gap (a `getGames` endpoint this project never probed at all) and one
+ * probable mistake (getCompletedEvents's documented parameter is `tournamentId`, not the
+ * `leagueId` the unmapped-endpoints group used — and this project already proved unrecognised
+ * params are silently ignored, so that earlier result may not mean what it was written up as
+ * meaning). This group closes those specific gaps; it does not re-run the other five.
  */
 
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -44,6 +55,16 @@ const PROBES_ROOT = new URL('../docs/probes/riot-rest/', import.meta.url).pathna
 const KNOWN_LEAGUE_ID_LCK = '98767991310872058';
 const KNOWN_LEAGUE_ID_EWC = '116838530616006090';
 const KNOWN_TEAM_ID_EG_LCS = '103461966951059521';
+// The next two came out of this stage's own earlier probes, recorded in the committed logs:
+// KNOWN_TOURNAMENT_ID_LCK from unmapped-endpoints.probe.json's tournaments-for-league result;
+// KNOWN_GAME_ID from event-details.probe.json's event-details-by-id match (a CBLOL game, fine for
+// testing getGames -- nothing about this probe needs it to be an LCK game).
+const KNOWN_TOURNAMENT_ID_LCK = '115548147890329817';
+const KNOWN_GAME_ID = '115565671526403014';
+// From getStandings' response body (docs/probes/riot-rest/unmapped-endpoints.probe.json), which
+// returns team `slug` alongside `id` -- the community docs say getTeams' `id` param is actually a
+// team *slug*, not the numeric external id this project's own probe used successfully.
+const KNOWN_TEAM_SLUG_T1 = 't1';
 
 interface ProbeResult {
   status: number;
@@ -59,7 +80,10 @@ interface ProbeContext {
 
 interface ProbeRequest {
   endpoint: string;
-  params: Record<string, string>;
+  /** A string[] value is sent as a REPEATED query param (?k=a&k=b), the array syntax the
+   *  community docs describe for leagueId/tournamentId/id on several endpoints -- distinct from
+   *  a single comma-joined string value, which is a different (and untested-by-those-docs) shape. */
+  params: Record<string, string | string[]>;
   /** Full replacement of the default header set. Omit a key to send the request without it. */
   headers?: Record<string, string>;
 }
@@ -76,9 +100,15 @@ interface ProbeDef {
   evidenceBasis: string;
 }
 
-function buildUrl(endpoint: string, params: Record<string, string>): string {
+function buildUrl(endpoint: string, params: Record<string, string | string[]>): string {
   const url = new URL(`${RIOT_REST_BASE}/${endpoint}`);
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  for (const [k, v] of Object.entries(params)) {
+    if (Array.isArray(v)) {
+      for (const item of v) url.searchParams.append(k, item);
+    } else {
+      url.searchParams.set(k, v);
+    }
+  }
   return url.toString();
 }
 
@@ -669,12 +699,142 @@ function eventDetailsGroup(): ProbeDef[] {
   ];
 }
 
+function docCrossCheckGroup(): ProbeDef[] {
+  return [
+    {
+      id: 'games-by-id',
+      question:
+        'getGames is documented by community sources (vickz84259/lolesports-api-docs, ' +
+        'kingjakeu/lolesports) and was completely absent from this project\'s own endpoint list -- ' +
+        'never probed, never even named. Does it exist and respond?',
+      request: () => ({ endpoint: 'getGames', params: { hl: 'en-US', id: KNOWN_GAME_ID } }),
+      analyze: (r) => {
+        const e = errorSummary(r.json);
+        return {
+          bodySummary: { hasErrorsKey: e.hasErrorsKey, messages: e.messages, raw: r.status === 200 ? r.json : undefined },
+          verdict: r.status === 200 ? 'HTTP 200 -- getGames exists and responds; see raw log for shape' : `HTTP ${String(r.status)}, errors=${JSON.stringify(e.messages)}`,
+        };
+      },
+      evidenceBasis: 'measured, this run, n=1',
+    },
+    {
+      id: 'completed-events-no-params',
+      question:
+        'Anchor for the two probes below. Since this project already proved unrecognised query ' +
+        'params are silently ignored (schedule-params/unknown-param), this establishes what ' +
+        'getCompletedEvents returns with NO scoping parameter at all -- the baseline a real ' +
+        'leagueId or tournamentId effect must differ from.',
+      request: () => ({ endpoint: 'getCompletedEvents', params: { hl: 'en-US' } }),
+      analyze: (r) => {
+        const f = scheduleFields(r.json);
+        return { bodySummary: f, verdict: `${String(f.eventCount)} events, leagues=${f.leagueSlugs.join(',')}` };
+      },
+      evidenceBasis: 'measured, this run, n=1',
+    },
+    {
+      id: 'completed-events-leagueid',
+      question:
+        'Re-check of unmapped-endpoints\' completed-events probe, which used leagueId and got 300 ' +
+        'events -- but the community docs say the real parameter is tournamentId, not leagueId. If ' +
+        'this result matches the no-params anchor, leagueId was silently ignored and the earlier ' +
+        '"300 real LCK events" claim needs correcting: it would have been 300 events from whatever ' +
+        'default scope the endpoint uses with no valid filter, not LCK specifically.',
+      request: () => ({ endpoint: 'getCompletedEvents', params: { hl: 'en-US', leagueId: KNOWN_LEAGUE_ID_LCK } }),
+      analyze: (r, ctx) => {
+        const f = scheduleFields(r.json);
+        const anchor = ctx.results.get('completed-events-no-params');
+        const anchorF = anchor ? scheduleFields(anchor.json) : null;
+        const sameAsAnchor = anchorF !== null && f.eventCount === anchorF.eventCount && f.firstStart === anchorF.firstStart;
+        return {
+          bodySummary: f,
+          verdict: sameAsAnchor
+            ? `IDENTICAL to the no-params anchor (${String(f.eventCount)} events) -- leagueId is silently ignored here, ` +
+              'CORRECTING the unmapped-endpoints group\'s earlier finding: that "300 real LCK events" result was not ' +
+              'actually scoped by league'
+            : `${String(f.eventCount)} events, DIFFERS from the no-params anchor -- leagueId does appear to have an effect after all`,
+        };
+      },
+      evidenceBasis: 'measured, this run, n=1, compared against completed-events-no-params in the same run',
+    },
+    {
+      id: 'completed-events-tournamentid',
+      question:
+        'The community-documented parameter for getCompletedEvents. Does it actually scope the ' +
+        'result, unlike leagueId?',
+      request: () => ({ endpoint: 'getCompletedEvents', params: { hl: 'en-US', tournamentId: KNOWN_TOURNAMENT_ID_LCK } }),
+      analyze: (r, ctx) => {
+        const f = scheduleFields(r.json);
+        const anchor = ctx.results.get('completed-events-no-params');
+        const anchorF = anchor ? scheduleFields(anchor.json) : null;
+        const sameAsAnchor = anchorF !== null && f.eventCount === anchorF.eventCount;
+        return {
+          bodySummary: f,
+          verdict: sameAsAnchor
+            ? `same event count as the no-params anchor (${String(f.eventCount)}) -- inconclusive, tournamentId may still be ` +
+              'the right param but this tournament happens to match the default scope'
+            : `${String(f.eventCount)} events (leagues=${f.leagueSlugs.join(',')}), DIFFERS from the no-params anchor -- ` +
+              'tournamentId does scope the result; this is the real parameter, not leagueId',
+        };
+      },
+      evidenceBasis: 'measured, this run, n=1, compared against completed-events-no-params in the same run',
+    },
+    {
+      id: 'schedule-leagueid-array-syntax',
+      question:
+        'The schedule-params group tested a comma-joined leagueId ("A,B") and got both leagues ' +
+        'back. The community docs describe leagueId as an array ' +
+        'parameter, which in a typical query-string encoding means REPEATED keys ("?leagueId=A&' +
+        'leagueId=B"), a different wire shape. Does the repeated-key form also return both leagues, ' +
+        'confirming array support generally -- or was the comma-joined result a coincidence of how ' +
+        'this specific endpoint tokenises one string value?',
+      request: () => ({ endpoint: 'getSchedule', params: { hl: 'en-US', leagueId: [KNOWN_LEAGUE_ID_LCK, KNOWN_LEAGUE_ID_EWC] } }),
+      analyze: (r) => {
+        const f = scheduleFields(r.json);
+        return {
+          bodySummary: f,
+          verdict:
+            r.status !== 200
+              ? `HTTP ${String(r.status)} -- repeated-key array syntax rejected`
+              : f.leagueSlugs.length > 1
+                ? `HTTP 200, leagues=${f.leagueSlugs.join(',')} -- repeated-key array syntax ALSO returns multiple leagues, ` +
+                  'consistent with the comma-joined result: both encodings work (or Riot ignores the encoding and just ' +
+                  'reads all provided leagueId occurrences either way)'
+                : `HTTP 200, leagues=${f.leagueSlugs.join(',')} -- only one league honoured with repeated keys, unlike the ` +
+                  'comma-joined form; the two encodings are NOT equivalent',
+        };
+      },
+      evidenceBasis: 'measured, this run, n=1',
+    },
+    {
+      id: 'teams-id-slug',
+      question:
+        'The community docs describe getTeams\' id parameter as a team SLUG, not the numeric ' +
+        'external id this project\'s own teams-id-filter probe used successfully. Does a slug also ' +
+        'work, or does only the numeric id this project already relies on actually function?',
+      request: () => ({ endpoint: 'getTeams', params: { hl: 'en-US', id: KNOWN_TEAM_SLUG_T1 } }),
+      analyze: (r) => {
+        const teams = ((r.json as { data?: { teams?: unknown[] } })?.data?.teams ?? []) as { id?: string; slug?: string; name?: string }[];
+        return {
+          bodySummary: { count: teams.length, first: teams[0] },
+          verdict:
+            teams.length === 1
+              ? `HTTP 200, 1 team returned (id=${String(teams[0]?.id)}, name=${String(teams[0]?.name)}) -- ` +
+                'a team SLUG also works as the id param, not just the numeric external id'
+              : `HTTP ${String(r.status)}, ${String(teams.length)} teams returned -- slug did not narrow the way a numeric id did`,
+        };
+      },
+      evidenceBasis: 'measured, this run, n=1',
+    },
+  ];
+}
+
 const GROUPS: Record<string, () => ProbeDef[]> = {
   'schedule-params': scheduleParamsGroup,
   'catalog-params': catalogParamsGroup,
   errors: errorsGroup,
   'unmapped-endpoints': unmappedEndpointsGroup,
   'event-details': eventDetailsGroup,
+  'doc-cross-check': docCrossCheckGroup,
 };
 
 function usage(message: string): never {
