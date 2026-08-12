@@ -11,14 +11,18 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:db": "vitest run --config vitest.db.config.ts",
     "lint": "eslint .",
     "capture": "tsx scripts/capture-fixture.ts",
     "capture:check": "tsx scripts/capture-check.ts",
     "capture:refresh": "tsx scripts/capture-refresh.ts",
-    "probe": "tsx scripts/probe-api.ts"
+    "probe": "tsx scripts/probe-api.ts",
+    "migrate": "tsx src/db/migrate.ts",
+    "sync": "tsx src/cli/sync.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.21.0",
     "eslint": "^9.39.5",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
@@ -26,6 +30,7 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
+    "pg": "^8.23.0",
     "zod": "^3.23.0"
   }
 }

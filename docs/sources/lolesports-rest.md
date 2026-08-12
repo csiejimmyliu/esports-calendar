@@ -60,6 +60,15 @@ mark where a probe changed what was believed here.
   `pages.older` still non-null on the sixth page. Forward and backward are not symmetric on the
   evidence so far. Past matches are in scope (SPEC §1), so historical backfill needs this direction,
   and nothing here establishes that it terminates at all, or in how many pages.
+
+  **Stage 1a decision, 2026-08-12: no backfill is built.** The owner does not need historical
+  matches reconstructed from before sync existed. `fetchMatches` still only crawls forward, so a
+  freshly-deployed sync reaches roughly three days into the past on day one (the forward crawl's
+  own horizon, above) and accumulates further history only from matches it has actually ingested —
+  upsert-and-never-delete, not backfill. This is not a change to `timeWindow` or any capability
+  flag; it is a statement about what stage 1a's sync worker chooses to call, not about what the
+  endpoint can do. If the `older` direction is later needed, this section's crawl-termination gap
+  is still open and would need resolving first.
 - Endpoints: `getSchedule`, `getLeagues`, `getTournamentsForLeague`, `getTeams`,
   `getEventDetails`, `getStandings`, `getLive`, `getCompletedEvents` — **and `getGames`, found only
   by cross-referencing community documentation** (`vickz84259.github.io/lolesports-api-docs`,
