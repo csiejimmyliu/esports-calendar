@@ -16,17 +16,26 @@
  * This does NOT update FIXTURE_CAPTURED_AT in tests/fixtures.ts, and does not touch the sidecar's
  * capturedOn. Both are deliberate follow-ups once the new content has been reviewed, per
  * fixtures/README.md.
+ *
+ * A path with NO `.json` extension is a Stage 0.7 crawl directory instead — re-crawls from scratch
+ * (never by replaying the committed pageToken values; see the CrawlSpec doc comment in
+ * src/fixtures/sidecar.ts) and compares page 1 by shape, the same way a single fixture is compared:
+ *
+ *   RIOT_ESPORTS_API_KEY=... npm run capture:refresh -- riot-lol/rest_getSchedule_crawl_2026-08-12
+ *   RIOT_ESPORTS_API_KEY=... npm run capture:refresh -- riot-lol/rest_getSchedule_crawl_2026-08-12 --write
  */
 
-import { writeFile } from 'node:fs/promises';
+import { mkdir, readdir, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { FIXTURES_ROOT, loadJson, loadSidecar, makeClient, apiKeyFromEnv } from './capture-lib.js';
+import { FIXTURES_ROOT, crawlSchedule, loadJson, loadSidecar, makeClient, apiKeyFromEnv } from './capture-lib.js';
 import { applyTransform } from '../src/fixtures/sidecar.js';
 import { summarizeShape, diffShape, isShapeDiffEmpty, formatShapeDiff } from '../src/fixtures/shape.js';
 
 function usage(message: string): never {
-  process.stderr.write(`${message}\n\nusage: npm run capture:refresh -- <fixture.json path, relative to fixtures/> [--write]\n`);
+  process.stderr.write(
+    `${message}\n\nusage: npm run capture:refresh -- <fixture.json path OR crawl directory, relative to fixtures/> [--write]\n`,
+  );
   process.exit(2);
 }
 
@@ -48,12 +57,90 @@ function countRows(json: unknown): Record<string, number> {
   return out;
 }
 
+function latestStartTime(pageJson: unknown): string | null {
+  const events = (pageJson as { data?: { schedule?: { events?: { startTime?: string }[] } } })?.data?.schedule
+    ?.events;
+  if (!Array.isArray(events) || events.length === 0) return null;
+  const times = events.map((e) => e.startTime).filter((t): t is string => typeof t === 'string');
+  return times.length === 0 ? null : ([...times].sort().at(-1) as string);
+}
+
+async function refreshCrawl(fixturePath: string, write: boolean): Promise<void> {
+  const metaPath = join(fixturePath, 'crawl.meta.json');
+  const sidecar = await loadSidecar(FIXTURES_ROOT, { jsonPath: fixturePath, metaPath, kind: 'crawl' });
+  if (!sidecar.recapture.capturable || sidecar.recapture.crawl === undefined) {
+    process.stderr.write(`${fixturePath} is not a capturable crawl fixture\n`);
+    process.exit(1);
+  }
+  const crawlSpec = sidecar.recapture.crawl;
+
+  const committedPage1 = await loadJson(FIXTURES_ROOT, join(fixturePath, 'page1.json'));
+  const client = makeClient(apiKeyFromEnv());
+  const result = await crawlSchedule(client, sidecar.recapture.params, crawlSpec.maxPages);
+
+  const diff = diffShape(summarizeShape(committedPage1), summarizeShape(result.pages[0]?.json));
+  process.stdout.write(`pages before: ${String(crawlSpec.pagesCaptured)}  pages after: ${String(result.pages.length)}\n`);
+  process.stdout.write(`complete: ${String(result.complete)}\n`);
+  const horizonUtc = result.pages.length > 0 ? latestStartTime(result.pages[result.pages.length - 1]!.json) : null;
+  process.stdout.write(`horizon before: ${crawlSpec.horizonUtc}  horizon after: ${String(horizonUtc)}\n\n`);
+
+  if (isShapeDiffEmpty(diff)) {
+    process.stdout.write('No shape difference on page 1 from the committed fixture.\n');
+  } else {
+    process.stdout.write('Shape differences on page 1 from the committed fixture:\n');
+    for (const line of formatShapeDiff(diff)) process.stdout.write(`  ${line}\n`);
+  }
+
+  const outDir = write ? join(FIXTURES_ROOT, fixturePath) : `${join(FIXTURES_ROOT, fixturePath)}.new`;
+  await mkdir(outDir, { recursive: true });
+
+  if (write) {
+    // Clear existing page*.json first — a 6-page directory refreshed by a 4-page crawl must not
+    // leave pages 5 and 6 stale beside four fresh ones. crawl.meta.json is overwritten below, not
+    // deleted here, since it is rewritten unconditionally.
+    const existing = await readdir(outDir);
+    await Promise.all(
+      existing.filter((name) => /^page\d+\.json$/.exec(name)).map((name) => unlink(join(outDir, name))),
+    );
+  }
+
+  for (const [i, page] of result.pages.entries()) {
+    await writeFile(join(outDir, `page${String(i + 1)}.json`), `${JSON.stringify(page.json)}\n`);
+  }
+
+  const updatedSidecar = {
+    ...sidecar,
+    recapture: {
+      ...sidecar.recapture,
+      crawl: { ...crawlSpec, pagesCaptured: result.pages.length, horizonUtc: horizonUtc ?? crawlSpec.horizonUtc },
+    },
+  };
+  await writeFile(join(outDir, 'crawl.meta.json'), `${JSON.stringify(updatedSidecar, null, 2)}\n`);
+
+  if (write) {
+    process.stdout.write(
+      `\nWrote ${fixturePath}/ directly (--write). Remember to: update crawl.meta.json's capturedOn, ` +
+        `and review whether an edge case the old crawl covered is gone (see fixtures/README.md).\n`,
+    );
+  } else {
+    process.stdout.write(
+      `\nWrote a draft to ${fixturePath}.new/ — the committed fixture is unchanged. Review the diff ` +
+        `above, then re-run with --write to replace it.\n`,
+    );
+  }
+}
+
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   const write = argv.includes('--write');
   const positional = argv.filter((a) => !a.startsWith('--'));
   const fixturePath = positional[0];
   if (fixturePath === undefined) usage('a fixture path is required');
+
+  if (!fixturePath.endsWith('.json')) {
+    await refreshCrawl(fixturePath, write);
+    return;
+  }
 
   const apiKey = apiKeyFromEnv();
   const client = makeClient(apiKey);

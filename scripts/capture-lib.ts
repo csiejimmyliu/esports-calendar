@@ -123,6 +123,45 @@ export function describeUrl(endpoint: string, params: Record<string, string>): s
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
+export interface CrawlPage {
+  json: unknown;
+  bytes: number;
+}
+
+/**
+ * Follow `data.schedule.pages.newer` forward, sequential and polite (spaced MIN_REQUEST_SPACING_MS
+ * apart, same as politeSequential), until it is null or `maxPages` is reached. This is the
+ * build-time twin of the adapter's own `crawlSchedule` in src/sources/riot/rest/adapter.ts — same
+ * termination rule (`pages.newer === null`, never a time-based guess about page width), simpler
+ * because a capture run is one-shot and does not need the runtime's repeated-token guard or
+ * partial-failure recovery: a capture that errors mid-crawl should fail the whole command, loudly,
+ * not silently write a truncated fixture.
+ */
+export async function crawlSchedule(
+  client: RiotRestClient,
+  params: Record<string, string>,
+  maxPages: number,
+): Promise<{ pages: CrawlPage[]; complete: boolean }> {
+  const pages: CrawlPage[] = [];
+  let token: string | undefined;
+
+  for (let i = 0; i < maxPages; i++) {
+    if (i > 0) await sleep(MIN_REQUEST_SPACING_MS);
+    const requestParams = token === undefined ? params : { ...params, pageToken: token };
+    const res = await client.get('getSchedule', requestParams);
+    pages.push(res);
+
+    const pageFields = (res.json as { data?: { schedule?: { pages?: { newer: string | null } } } })?.data?.schedule
+      ?.pages;
+    if (pageFields === undefined || pageFields.newer === null) {
+      return { pages, complete: true };
+    }
+    token = pageFields.newer;
+  }
+
+  return { pages, complete: false };
+}
+
 /**
  * Run a bounded, sequential, spaced-out fetch across several fixtures. Never fires two requests
  * concurrently and never exceeds MAX_REQUESTS_PER_RUN in one process — a hard cap, not a suggestion,
