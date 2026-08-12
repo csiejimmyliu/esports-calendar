@@ -129,6 +129,24 @@ describe('fetchMatches hides its multi-request shape but not its cost', () => {
     expect(result.diagnostics.requestCount).toBe(1);
   });
 
+  it('reports no-team-identity when getTeams itself fails, not only when getLeagues does', async () => {
+    // Stage 1b: this branch used to warn only `degraded-fetch`. `no-team-identity` is what
+    // src/sync/ingest.ts's A1 fix (preserve, don't overwrite, a previously resolved team id)
+    // relies on being able to tell apart from other degraded-fetch causes without inspecting the
+    // message text.
+    const degradedTeams: RiotRestTransport = {
+      getSchedule: () => Promise.resolve({ json: terminalSchedule(schedule), bytes: 0 }),
+      getLeagues: () => Promise.resolve({ json: leagues, bytes: 0 }),
+      getTeams: () => Promise.reject(new Error('503')),
+    };
+    const result = await adapter(degradedTeams).fetchMatches(GLOBAL_SCOPE);
+
+    expect(result.items).toHaveLength(80);
+    expect(result.warnings.map((w) => w.code)).toContain('degraded-fetch');
+    expect(result.warnings.map((w) => w.code)).toContain('no-team-identity');
+    expect(result.items.every((m) => m.sides.every((s) => s.team?.externalId == null))).toBe(true);
+  });
+
   it('propagates a primary failure instead of reporting a successful empty fetch', async () => {
     const broken: RiotRestTransport = {
       getSchedule: () => Promise.reject(new Error('upstream down')),

@@ -1,7 +1,7 @@
 /**
  * DB-backed test setup. Fails loudly when DATABASE_URL is unset rather than skipping — a
  * silently-skipping integration test is exactly the failure mode this repo is built to avoid
- * (CLAUDE.md). Run via `docker compose up -d postgres && npm run test:db`.
+ * (CLAUDE.md). Run via `docker compose up -d db && npm run test:db`.
  */
 
 import type { Pool } from 'pg';
@@ -13,7 +13,7 @@ export async function setupTestDb(): Promise<Pool> {
   if (process.env['DATABASE_URL'] === undefined || process.env['DATABASE_URL'] === '') {
     throw new Error(
       'DATABASE_URL is not set. tests/db/** needs a live Postgres: ' +
-        '`docker compose up -d postgres` then run with DATABASE_URL set (see .env.example). ' +
+        '`docker compose up -d db` then run with DATABASE_URL set (see .env.example). ' +
         'Failing loudly rather than skipping is deliberate.',
     );
   }
@@ -29,7 +29,7 @@ export async function truncateAll(pool: Pool): Promise<void> {
     TRUNCATE TABLE
       selection, follow, stream_pref, notification_rule, device, ics_token,
       external_ref, stream, match_team, match, tournament, team, league,
-      sync_run, source_health, source, game, app_user
+      canary_result, sync_run, source_health, source, game, app_user
     RESTART IDENTITY CASCADE
   `);
 }

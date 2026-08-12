@@ -56,42 +56,57 @@ function isTbd(team: { code: string; result?: unknown }): boolean {
   return team.code === 'TBD' && (team.result === null || team.result === undefined);
 }
 
-function parseEvent(
-  raw: unknown,
-  opts: ParseScheduleOptions,
-  warn: WarningCollector,
-): SourceMatch | null {
+/**
+ * `parseEvent`'s outcome, one layer richer than a bare `SourceMatch | null`.
+ *
+ * Cancellation detection (src/sync/cancellation.ts, via src/sync/ingest.ts) needs to know which
+ * external ids this fetch actually saw, independent of which items survived parsing — those are
+ * not the same set. `observedId` carries the id whenever the event was identifiable at all, even
+ * when the match itself was dropped (e.g. `non-binary-sides`: the id is in hand, only the shape is
+ * wrong). `unidentified` is true only when the event could not be identified even that far
+ * (schema-validation failure, or `type: "match"` with no `match` object) — those are the ones a
+ * caller must treat as "the fetch did not have a complete picture", not as evidence of anything.
+ */
+interface EventParseResult {
+  match: SourceMatch | null;
+  observedId: string | null;
+  unidentified: boolean;
+}
+
+function parseEvent(raw: unknown, opts: ParseScheduleOptions, warn: WarningCollector): EventParseResult {
   const parsed = ScheduleEvent.safeParse(raw);
   if (!parsed.success) {
     warn.warn('unparsable-item', `event failed schema validation: ${parsed.error.message}`, raw);
-    return null;
+    return { match: null, observedId: null, unidentified: true };
   }
   const event: ScheduleEventDto = parsed.data;
 
   if (event.type !== 'match') {
     // `show` is a known non-match event (analyst desk, pre-game programming) and carries no
     // `match` object. Anything else is a value Riot introduced without telling us: not a match
-    // as far as we know, but worth saying out loud rather than dropping in silence.
+    // as far as we know, but worth saying out loud rather than dropping in silence. Neither is a
+    // "drop" — there was never a match here to identify or lose track of.
     if (event.type !== 'show') {
       warn.warn('unknown-event-type', `unrecognised event type ${JSON.stringify(event.type)}`, event.type);
     }
-    return null;
+    return { match: null, observedId: null, unidentified: false };
   }
 
   if (!event.match) {
     warn.warn('unparsable-item', 'event has type "match" but no match object', event);
-    return null;
+    return { match: null, observedId: null, unidentified: true };
   }
 
   const teams = event.match.teams;
   if (teams.length !== 2) {
-    // Skipped rather than crashed on. One malformed match must not empty a calendar.
+    // Skipped rather than crashed on. One malformed match must not empty a calendar. The id is
+    // still known, though, so this is not read as the match having vanished from the feed.
     warn.warn(
       'non-binary-sides',
       `match ${event.match.id} has ${String(teams.length)} participants, expected 2`,
       event.match.id,
     );
-    return null;
+    return { match: null, observedId: event.match.id, unidentified: false };
   }
 
   const reported = KNOWN_STATES[event.state];
@@ -207,7 +222,7 @@ function parseEvent(
    */
   const gamesPlayed = sides.reduce((sum, s) => sum + (s.score ?? 0), 0);
 
-  return {
+  const match: SourceMatch = {
     externalId: event.match.id,
     game: opts.game,
     leagueExternalId: opts.leagueIdBySlug?.get(event.league.slug) ?? null,
@@ -223,26 +238,38 @@ function parseEvent(
     // Riot exposes no streams. Settled, not pending: League.defaultStreamUrl covers it.
     streamUrl: null,
   };
+  return { match, observedId: match.externalId, unidentified: false };
 }
 
 /**
- * One page's events. No `suspect-empty` and no `no-team-identity` here — a page is not a fetch,
- * and both of those are properties of the whole result a caller ends up with, not of one document
- * in the middle of a Stage 0.7 crawl. `parseSchedule` and `parseSchedulePages` each evaluate them
- * once, at their own scope.
+ * One page's events, plus what the page actually contained (Stage 1b) independent of what parsed
+ * — see `EventParseResult`. No `suspect-empty` and no `no-team-identity` here — a page is not a
+ * fetch, and both of those are properties of the whole result a caller ends up with, not of one
+ * document in the middle of a Stage 0.7 crawl. `parseSchedule` and `parseSchedulePages` each
+ * evaluate them once, at their own scope.
  */
+interface ScheduleEventsResult {
+  items: SourceMatch[];
+  observedIds: Set<string>;
+  unidentifiedDrops: number;
+}
+
 export function parseScheduleEvents(
   raw: unknown,
   opts: ParseScheduleOptions,
   warn: WarningCollector,
-): SourceMatch[] {
+): ScheduleEventsResult {
   const envelope = GetScheduleResponse.parse(raw);
   const items: SourceMatch[] = [];
+  const observedIds = new Set<string>();
+  let unidentifiedDrops = 0;
   for (const event of envelope.data.schedule.events) {
-    const match = parseEvent(event, opts, warn);
-    if (match) items.push(match);
+    const result = parseEvent(event, opts, warn);
+    if (result.observedId !== null) observedIds.add(result.observedId);
+    if (result.unidentified) unidentifiedDrops += 1;
+    if (result.match) items.push(result.match);
   }
-  return items;
+  return { items, observedIds, unidentifiedDrops };
 }
 
 /**
@@ -251,7 +278,7 @@ export function parseScheduleEvents(
  */
 export function parseSchedule(raw: unknown, opts: ParseScheduleOptions): ParseOutput<SourceMatch> {
   const warn = new WarningCollector();
-  const items = parseScheduleEvents(raw, opts, warn);
+  const { items } = parseScheduleEvents(raw, opts, warn);
 
   if (items.length === 0) {
     warn.warn(
@@ -285,6 +312,15 @@ export interface ParseSchedulePagesOutput extends ParseOutput<SourceMatch> {
    * anomaly, so it is counted rather than warned about.
    */
   duplicateEventsDropped: number;
+  /**
+   * Every external id this crawl actually saw, whether or not the item survived parsing — see
+   * `FetchResult.observed`. Includes ids from `non-binary-sides` drops; excludes duplicates
+   * (already deduped, same id either way) and `type: "show"` events (never had a match id).
+   */
+  observedExternalIds: Set<string>;
+  /** Sum of `EventParseResult.unidentified` across every page. Nonzero means this crawl cannot
+   *  support cancellation detection — see src/sync/ingest.ts. */
+  unidentifiedDrops: number;
 }
 
 /**
@@ -299,10 +335,15 @@ export function parseSchedulePages(
   const warn = new WarningCollector();
   const seen = new Set<string>();
   const items: SourceMatch[] = [];
+  const observedExternalIds = new Set<string>();
   let duplicateEventsDropped = 0;
+  let unidentifiedDrops = 0;
 
   for (const page of pages) {
-    for (const match of parseScheduleEvents(page, opts, warn)) {
+    const pageResult = parseScheduleEvents(page, opts, warn);
+    unidentifiedDrops += pageResult.unidentifiedDrops;
+    for (const id of pageResult.observedIds) observedExternalIds.add(id);
+    for (const match of pageResult.items) {
       if (seen.has(match.externalId)) {
         duplicateEventsDropped += 1;
         continue;
@@ -325,7 +366,7 @@ export function parseSchedulePages(
     );
   }
 
-  return { items, warnings: warn.list(), duplicateEventsDropped };
+  return { items, warnings: warn.list(), duplicateEventsDropped, observedExternalIds, unidentifiedDrops };
 }
 
 export function parseLeagues(raw: unknown, game: GameSlug): ParseOutput<SourceLeague> {

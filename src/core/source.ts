@@ -183,6 +183,24 @@ export interface FetchResult<T> {
   /** Structured and aggregated by code. Emptiness is reported here, not as a bare array. */
   warnings: SourceWarning[];
   diagnostics: FetchDiagnostics;
+  /**
+   * What the fetch actually saw, independent of what parsed. Added in Stage 1b so cancellation
+   * detection can be driven by "which external ids did the feed contain" rather than "which items
+   * survived parsing" — those are not the same set. A schema-validation failure or a missing
+   * `match` object drops an item with no external id to hand back (`unidentifiedDrops`); a match
+   * dropped for a reason that still leaves its id in hand (e.g. `non-binary-sides`) belongs in
+   * `externalIds` so its absence from `items` is never mistaken for the source not having it.
+   *
+   * Optional and match-fetch-specific: absent for `listScopes`/`fetchLeagues`/`fetchTournaments`,
+   * and a caller with no `observed` falls back to `items`' own ids plus `diagnostics.crawlComplete`
+   * alone, i.e. today's behaviour.
+   */
+  observed?: {
+    externalIds: ReadonlySet<string>;
+    /** Dropped items this fetch could not even identify. Any nonzero count means the fetch was
+     *  not a complete picture of what upstream has, independent of crawl pagination. */
+    unidentifiedDrops: number;
+  };
 }
 
 // ---------------------------------------------------------------------------

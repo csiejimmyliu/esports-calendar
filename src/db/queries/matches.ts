@@ -63,19 +63,36 @@ export async function insertMatch(client: PoolClient, fields: MatchFields): Prom
 /**
  * `bumpRevision` is the caller's decision (src/sync/diff.ts's `visibleChange`), never derived
  * here — this module has no opinion about which fields are user-visible.
+ *
+ * The `WHERE ... IS DISTINCT FROM` guard is what makes a second sync run over unchanged data a
+ * genuine no-op rather than just "no duplicate rows": without it this UPDATE fires unconditionally
+ * on every match, on every run, moving `updated_at` for a row whose content — including fields
+ * `bumpRevision` does not cover, like a score update — did not actually change. A staleness or
+ * incremental-sync consumer keyed on `updated_at` would otherwise see the whole table touched
+ * hourly. Returns whether a row was actually written.
  */
 export async function updateMatch(
   client: PoolClient,
   id: string,
   fields: MatchFields,
   bumpRevision: boolean,
-): Promise<void> {
-  await client.query(
+): Promise<boolean> {
+  const { rowCount } = await client.query(
     `UPDATE match SET
        tournament_id = $2, league_id = $3, starts_at_utc = $4, best_of = $5,
        games_played = $6, block_name = $7, state = $8,
        revision = revision + $9, updated_at = now()
-     WHERE id = $1`,
+     WHERE id = $1
+       AND (
+         tournament_id IS DISTINCT FROM $2 OR
+         league_id IS DISTINCT FROM $3 OR
+         starts_at_utc IS DISTINCT FROM $4 OR
+         best_of IS DISTINCT FROM $5 OR
+         games_played IS DISTINCT FROM $6 OR
+         block_name IS DISTINCT FROM $7 OR
+         state IS DISTINCT FROM $8 OR
+         $9 <> 0
+       )`,
     [
       id,
       fields.tournamentId,
@@ -88,6 +105,7 @@ export async function updateMatch(
       bumpRevision ? 1 : 0,
     ],
   );
+  return (rowCount ?? 0) > 0;
 }
 
 export async function upsertMatchTeam(
@@ -126,6 +144,13 @@ export interface KnownMatch {
  * Every match this source has previously ingested, for cancellation detection
  * (src/sync/cancellation.ts). Scoped to one source so a second source's matches are never
  * touched by this one's crawl horizon — NFR-3/NFR-4 apply to detection, not only to fetching.
+ *
+ * Not scoped to one *scope* within that source, though `syncScope` (src/sync/ingest.ts) calls it
+ * per scope and derives the cancellation horizon from that scope's own fetch. `riot-rest-lol` has
+ * exactly one implicit scope, so today the two coincide. A future multi-scope source (a per-
+ * tournament source like BLAST) would let scope A's horizon cancel scope B's matches if they
+ * share a date range — this is a known gap, not a verified-safe design, and needs a `scope_key`
+ * on the crosswalk or a per-scope query before a second scope exists on any source.
  */
 export async function listKnownMatches(client: PoolClient, sourceId: string, gameId: string): Promise<KnownMatch[]> {
   const { rows } = await client.query<{
@@ -148,12 +173,16 @@ export async function listKnownMatches(client: PoolClient, sourceId: string, gam
   }));
 }
 
-export async function markCancelled(client: PoolClient, matchId: string): Promise<void> {
-  // Idempotent: a match already cancelled does not bump revision again on a later run that
-  // still does not see it.
-  await client.query(
+/**
+ * Idempotent: a match already cancelled does not bump revision again on a later run that still
+ * does not see it. Returns whether this call actually cancelled the row — the caller's
+ * `matchesCancelled` counter uses this so a re-run does not keep reporting the same cancellation.
+ */
+export async function markCancelled(client: PoolClient, matchId: string): Promise<boolean> {
+  const { rowCount } = await client.query(
     `UPDATE match SET state = 'cancelled', revision = revision + 1, updated_at = now()
      WHERE id = $1 AND state <> 'cancelled'`,
     [matchId],
   );
+  return (rowCount ?? 0) > 0;
 }

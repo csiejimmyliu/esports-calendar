@@ -1,15 +1,16 @@
 /**
- * Stage 1a CLI: one-shot sync entry point.
+ * One-shot sync entry point.
  *
  *   tsx src/cli/sync.ts --source riot-rest-lol --fixture --now 2026-08-12T00:00:00Z
  *   tsx src/cli/sync.ts --source riot-rest-lol --live
  *
- * No scheduler here — this process runs once and exits. Stage 1b adds the resident worker that
- * calls this same runSync on an interval; this file is deliberately what it will call, not a
- * smaller version of it.
+ * No scheduler here — this process runs once and exits. A resident worker is future work; this
+ * file is deliberately what it will call, not a smaller version of it.
  *
  * Defaults to the committed crawl fixture, same convention as src/cli/next-matches.ts: a
  * fixture-backed run must never read the wall clock, so --now is required unless --live is given.
+ * Stage 1b is what makes this load-bearing rather than accepted-and-ignored: `runSync` passes it
+ * to every canary's `check(matches, now)`.
  */
 
 import { readdirSync } from 'node:fs';
@@ -18,11 +19,12 @@ import process from 'node:process';
 
 import { createLeagueConfig } from '../config/leagues.js';
 import type { LeagueConfig } from '../config/leagues.js';
+import { fixedClock, systemClock } from '../core/time.js';
 import { formatWarning } from '../core/warnings.js';
 import { createPool } from '../db/pool.js';
 import { migrate } from '../db/migrate.js';
 import { findSource } from '../sync/registry.js';
-import { runSync } from '../sync/ingest.js';
+import { classifyRun, runSync } from '../sync/ingest.js';
 import { RiotRestClient } from '../sources/riot/rest/client.js';
 import { createRiotRestLolAdapter, fixtureTransport, httpTransport } from '../sources/riot/rest/adapter.js';
 import type { RiotRestTransport } from '../sources/riot/rest/adapter.js';
@@ -72,15 +74,14 @@ async function loadLeagueConfig(): Promise<LeagueConfig> {
 async function main(): Promise<number> {
   const args = parseArgs(process.argv.slice(2));
 
-  // Ingestion itself reads no clock — every timestamp comes from the fetched matches. --now is
-  // accepted anyway, for parity with next-matches.ts and because stage 1b's canary scheduling
-  // will need a pinned reference time the moment it lands; a flag that silently does nothing in
-  // --live mode is fine, one that silently does nothing against a frozen fixture is the trap
-  // CLAUDE.md calls out, so it still warns.
+  // Ingestion (the matches/leagues/teams themselves) reads no clock — every stored timestamp
+  // comes from the fetch. `now` is what the canaries run against (SourceCanary.check), so a
+  // fixture-backed run with no --now pinned still must not silently fall back to the wall clock —
+  // the same trap src/cli/next-matches.ts guards against.
+  const clock = args.now === null ? systemClock : fixedClock(args.now);
   if (args.now === null && !args.live) {
     process.stderr.write(
-      'warning: reading a fixture with no --now pinned. Harmless today (sync reads no clock), ' +
-        'but pass --now anyway once stage 1b adds canary scheduling here.\n',
+      'warning: reading a fixture with the system clock. Pass --now to pin the reference time the canaries run against.\n',
     );
   }
 
@@ -105,17 +106,30 @@ async function main(): Promise<number> {
   const pool = createPool();
   try {
     await migrate(pool);
-    const report = await runSync(pool, entry, adapter, leagueConfig);
+    const now = clock.now();
+    const report = await runSync(pool, entry, adapter, leagueConfig, now);
 
     process.stdout.write(
-      `sync ${report.sourceId}: ${String(report.scopesProcessed)} scope(s), ${String(report.matchesFetched)} match(es) fetched\n` +
+      `sync ${report.sourceId}: ${String(report.scopesProcessed)} scope(s) ok, ${String(report.scopesFailed)} failed, ` +
+        `${String(report.matchesFetched)} match(es) fetched\n` +
         `  leagues upserted: ${String(report.leaguesUpserted)}\n` +
         `  teams touched: ${String(report.teamsUpserted)}\n` +
         `  matches inserted: ${String(report.matchesInserted)}, updated: ${String(report.matchesUpdated)}, ` +
         `unchanged: ${String(report.matchesUnchanged)}, cancelled: ${String(report.matchesCancelled)}\n`,
     );
+    if (report.fatal !== null) process.stderr.write(`fatal: ${report.fatal}\n`);
+    for (const f of report.scopeFailures) process.stderr.write(`scope ${f.scopeKey} failed: ${f.message}\n`);
     for (const w of report.warnings) process.stderr.write(`${formatWarning(w)}\n`);
-    return 0;
+    for (const c of report.canaryResults) {
+      process.stderr.write(`canary ${c.key}: ${c.ok ? 'ok' : 'FAILED'} — ${c.detail}\n`);
+    }
+
+    // A source-broken run (`failed`) exits non-zero — a deliberately broken source does not fail
+    // *this process*, but a caller (a cron job, a health dashboard) still needs to know the run
+    // did not land. `degraded` (a scope failed or a canary did not pass, but some data still
+    // ingested) exits 0: a wrong-looking calendar beats no calendar, and source_health already
+    // recorded the detail for anyone watching.
+    return classifyRun(report) === 'failed' ? 1 : 0;
   } finally {
     await pool.end();
   }

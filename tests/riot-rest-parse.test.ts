@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { parseLeagues, parseSchedule } from '../src/sources/riot/rest/parse.js';
+import { parseLeagues, parseSchedule, parseSchedulePages } from '../src/sources/riot/rest/parse.js';
 import type { SourceMatch } from '../src/core/types.js';
 import type { WarningCode } from '../src/core/warnings.js';
 import { buildTeamIndex, parseTeams } from '../src/sources/riot/rest/teams.js';
@@ -263,6 +263,53 @@ describe('edge cases the fixture does not contain — a fixture proves existence
     expect(() => parse(scheduleEnvelope([matchEvent({ startTime: '2026-08-09T08:00:00' })]))).toThrow(
       /no timezone marker/,
     );
+  });
+});
+
+describe('parseSchedulePages: observed ids vs. parsed items (Stage 1b)', () => {
+  // detectCancellations (src/sync/cancellation.ts, via src/sync/ingest.ts) must be driven by what
+  // a fetch actually saw, not by what survived parsing — those are not the same set. See
+  // FetchResult.observed in src/core/source.ts.
+  function pages(raw: unknown): ReturnType<typeof parseSchedulePages> {
+    return parseSchedulePages([raw], { game: 'lol', leagueIdBySlug, leagueConfig, teamIndex });
+  }
+
+  it('keeps a non-binary-sides drop\'s id in observedExternalIds, so it is not read as absent', () => {
+    const raw = scheduleEnvelope([
+      matchEvent({
+        match: {
+          id: 'solo-side-1',
+          flags: [],
+          strategy: { type: 'bestOf', count: 3 },
+          teams: [{ name: 'Solo', code: 'SOL', image: null, result: null }],
+        },
+      }),
+    ]);
+    const result = pages(raw);
+    expect(result.items).toHaveLength(0);
+    expect(result.observedExternalIds.has('solo-side-1')).toBe(true);
+    expect(result.unidentifiedDrops).toBe(0);
+  });
+
+  it('counts a schema-validation failure as unidentified, with no id to preserve', () => {
+    const result = pages(scheduleEnvelope([{ nonsense: true }, matchEvent()]));
+    expect(result.items).toHaveLength(1);
+    expect(result.unidentifiedDrops).toBe(1);
+  });
+
+  it('does not count a "show" event as a drop at all', () => {
+    const raw = scheduleEnvelope([
+      { startTime: '2026-08-09T08:00:00Z', state: 'inProgress', type: 'show', league: { name: 'LCK', slug: 'lck' } },
+      matchEvent(),
+    ]);
+    const result = pages(raw);
+    expect(result.unidentifiedDrops).toBe(0);
+  });
+
+  it('a normally-parsed match is in both items and observedExternalIds', () => {
+    const result = pages(scheduleEnvelope([matchEvent()]));
+    expect(result.items).toHaveLength(1);
+    expect(result.observedExternalIds.has(result.items[0]?.externalId ?? '')).toBe(true);
   });
 });
 

@@ -484,6 +484,14 @@ export function createRiotRestLolAdapter(
             'degraded-fetch',
             `getTeams failed, matches returned without team ids: ${err instanceof Error ? err.message : String(err)}`,
           );
+          // Same code the getLeagues-failed branch above already emits for the analogous case:
+          // the source cannot identify teams right now. Stage 1b added this so health/ingest
+          // classification can read one warning code for "no crosswalk this run" instead of
+          // inferring it from `degraded-fetch`'s message text.
+          warn.warn(
+            'no-team-identity',
+            'getTeams failed; no team master table available, so nothing can be crosswalked this run',
+          );
         }
       }
 
@@ -514,6 +522,10 @@ export function createRiotRestLolAdapter(
           crawlComplete: crawl.complete,
           horizonUtc,
           duplicateEventsDropped: parsed.duplicateEventsDropped,
+        },
+        observed: {
+          externalIds: parsed.observedExternalIds,
+          unidentifiedDrops: parsed.unidentifiedDrops,
         },
       };
     },

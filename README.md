@@ -11,13 +11,22 @@ decision (`config/leagues.json`), not an API limitation, and it is expected to w
 
 ## Status
 
-**Stage 0.5 complete.** One source adapter (`riot-rest-lol`) with golden fixtures, semantic canaries,
-and team identity via the `getTeams` master table. A CLI prints upcoming matches with resolved team
-ids.
+**Stage 1b complete.** Schema, source registry, identity crosswalk, idempotent sync, and now source
+health + canary scheduling (`docs/SPEC.md` §8 stage 1 is split into 1a/1b there — 1a landed the sync
+worker, 1b landed what happens when a source degrades: a preserved-not-erased team identity across a
+transient `getTeams` outage, a parser drop that is never read as a cancellation, per-scope failure
+isolation, a genuinely no-op second run, and `source_health`/`sync_run`/`canary_result` recording).
 
-**No database, no server, no web UI, no ICS, no notifications yet.** `docker-compose.yml` and the
-`DATABASE_URL` / `REDIS_URL` entries in `.env.example` exist but nothing reads them — stage 1 is the
-first consumer, so you do not need Docker running to work on anything today.
+Before that: one source adapter (`riot-rest-lol`) with golden fixtures, semantic canaries, and team
+identity via the `getTeams` master table (Stage 0–0.8).
+
+**Postgres is required now.** `docker compose up -d db`, then `DATABASE_URL=... npm run migrate` and
+`npm run sync -- --source riot-rest-lol --now <ISO instant>` (`--live` goes upstream instead of the
+committed fixture; needs `RIOT_ESPORTS_API_KEY`, see `.env.example`). `npm run test:db` runs the
+DB-backed suite against the same instance — `npm run test` alone does not exercise it.
+
+**No web server, no web UI, no ICS, no notifications yet, no CI.** Stage 2 (`follow`/`selection`/JSON
+API) is next.
 
 Scope was narrowed to LoL only on 2026-08-09; the requirements and stage plan were rewritten from the
 owner's own statement on 2026-08-11 (SPEC §0, §8). The cross-title interface design is kept and marked

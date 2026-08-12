@@ -91,7 +91,7 @@ the source is a bad fit, not a reason to put an agent in the sync path.
 
 ## Stage-specific notes
 
-Numbered against the current SPEC §8. Stages 0, 0.5, 0.6, 0.7, and 0.8 are done.
+Numbered against the current SPEC §8. Stages 0, 0.5, 0.6, 0.7, 0.8, 1a, and 1b are done.
 
 **Stage 0.8 — API boundary survey.** Also discovered mid-session rather than planned: a Stage 1
 alignment check surfaced that no parameter or boundary claim about the Riot REST API had actually
@@ -116,11 +116,22 @@ the partial-crawl test (a middle page failing) before the happy path, the same i
 instinct as Stage 1's own note below — NFR-4 (partial failure isolation) says a truncated crawl must
 still return what it has, not throw the near-now slice away.
 
-**Stage 1 — schema and sync.** Require the idempotency test *before* the sync implementation: "write
-the test that runs sync twice and asserts zero duplicate rows, then make it pass." Also require the
-deliberately-broken-source test. A model will not handle TBD opponents or zero-row responses until
-forced. The canary work here is scheduling, not invention — the assertions already exist and are unit
-tested; what stage 1 adds is running them and recording the outcome in `source_health`.
+**Stage 1a — schema and sync.** Require the idempotency test *before* the sync implementation: "write
+the test that runs sync twice and asserts zero duplicate rows, then make it pass." A model will not
+handle TBD opponents or zero-row responses until forced.
+
+**Stage 1b — source health, canary scheduling, and degradation semantics.** The
+deliberately-broken-source test that 1a's own review deferred belongs here, and reviewing 1a against
+CLAUDE.md's constraints before starting 1b surfaced three more of the same shape it had missed: a
+transient `getTeams` outage wrote `NULL` over an already-resolved team id (degradation was handled at
+the adapter boundary but not carried through to the write), a parser drop was indistinguishable from a
+cancellation to the sync layer, and there was no isolation between scopes or sources at all — one
+`fetchLeagues` failure rolled back the whole transaction. Require a regression test for the specific
+failure each of those represents, not just the new feature's happy path — "does a degraded fetch still
+preserve what was already resolved" is a different test from "does the source fail the run." The
+canary work itself is scheduling, not invention — the assertions already exist (`src/core/source.ts`,
+`riot-rest-lol`'s two canaries) and are unit tested; 1b's job is running them per scope and persisting
+the verdict, not rewriting them.
 
 **Stage 2 — follow and selection.** The cases to call out are the override rules in SPEC §2 FR-1, not
 de-duplication. De-duplication is the easy half and a model will get it; what it will miss is that
