@@ -25,7 +25,7 @@ import { WarningCollector } from '../../../core/warnings.js';
 import { addDays, parseUtcInstant } from '../../../core/time.js';
 import { RiotRestClient } from './client.js';
 import type { RawResponse } from './client.js';
-import { parseLeagues, parseSchedule } from './parse.js';
+import { parseLeagues, parseSchedulePages } from './parse.js';
 import { buildTeamIndex, parseTeams } from './teams.js';
 import type { TeamIndex } from './teams.js';
 
@@ -40,7 +40,13 @@ import type { TeamIndex } from './teams.js';
  * fails, a `degraded-fetch` warning.
  */
 export interface RiotRestTransport {
-  getSchedule(): Promise<RawResponse>;
+  /**
+   * `pageToken` is `undefined` for the first page of a crawl (Stage 0.7) and thereafter is the
+   * previous page's `data.schedule.pages.newer`, verbatim. Absent means "start from now" —
+   * `httpTransport` sends no `pageToken` parameter at all in that case, matching the pre-0.7
+   * unparameterised call exactly.
+   */
+  getSchedule(pageToken?: string): Promise<RawResponse>;
   getLeagues(): Promise<RawResponse>;
   /** The team master table. One call per sync run, never one per match. */
   getTeams(): Promise<RawResponse>;
@@ -48,15 +54,30 @@ export interface RiotRestTransport {
 
 export function httpTransport(client: RiotRestClient): RiotRestTransport {
   return {
-    getSchedule: () => client.get('getSchedule'),
+    getSchedule: (pageToken) => client.get('getSchedule', pageToken === undefined ? {} : { pageToken }),
     getLeagues: () => client.get('getLeagues'),
     getTeams: () => client.get('getTeams'),
   };
 }
 
-/** Reads captured responses. Used by the golden-fixture tests and by the CLI's default mode. */
+/**
+ * Reads captured responses. Used by the golden-fixture tests and by the CLI's default mode.
+ *
+ * `schedule` is either one document (every fixture from before Stage 0.7) or an array of pages —
+ * a crawl fixture, served in order. Two things this does that a plain array-of-responses would not:
+ *
+ * 1. **Asserts the token.** Call *n* must arrive with call *n-1*'s `pages.newer`, or it rejects
+ *    naming both — turning the double into a checker of the crawl's own correctness, not just a
+ *    passive sequencer.
+ * 2. **Forces the terminal page's `pages.newer` to `null`, in memory only.** This is the one place
+ *    a test double diverges from the bytes on disk in a repo whose fixtures are otherwise verbatim
+ *    — and it exists so every fixture captured before crawling existed (whose own `pages.newer`
+ *    may be genuinely non-null, mid-schedule) still reads as "one page, done" rather than as a
+ *    crawl that needs a page 2 nothing supplies. The real terminal-`null` path is still exercised:
+ *    the committed crawl corpus's own last page carries a genuine `null`, untouched.
+ */
 export function fixtureTransport(fixtures: {
-  schedule: unknown;
+  schedule: unknown | unknown[];
   leagues?: unknown;
   teams?: unknown;
 }): RiotRestTransport {
@@ -65,8 +86,38 @@ export function fixtureTransport(fixtures: {
     value === undefined
       ? Promise.reject(new Error(`no ${name} fixture supplied`))
       : Promise.resolve({ json: value, bytes: size(value) });
+
+  const pages = Array.isArray(fixtures.schedule) ? fixtures.schedule : [fixtures.schedule];
+  let nextIndex = 0;
+  let expectedToken: string | undefined;
+
+  const getSchedule = (pageToken?: string): Promise<RawResponse> => {
+    if (pageToken !== expectedToken) {
+      return Promise.reject(
+        new Error(
+          `fixtureTransport: getSchedule called with pageToken ${JSON.stringify(pageToken)}, ` +
+            `expected ${JSON.stringify(expectedToken)} (call ${String(nextIndex + 1)})`,
+        ),
+      );
+    }
+    if (nextIndex >= pages.length) {
+      return Promise.reject(
+        new Error(`fixtureTransport: no page ${String(nextIndex + 1)} supplied; the fixture has ${String(pages.length)}`),
+      );
+    }
+    const doc = JSON.parse(JSON.stringify(pages[nextIndex])) as {
+      data?: { schedule?: { pages?: { older: string | null; newer: string | null } } };
+    };
+    nextIndex += 1;
+    const isLast = nextIndex === pages.length;
+    const pageBlock = doc.data?.schedule?.pages;
+    if (isLast && pageBlock !== undefined) pageBlock.newer = null;
+    expectedToken = pageBlock?.newer ?? undefined;
+    return Promise.resolve({ json: doc, bytes: size(doc) });
+  };
+
   return {
-    getSchedule: () => Promise.resolve({ json: fixtures.schedule, bytes: size(fixtures.schedule) }),
+    getSchedule,
     getLeagues: supply('leagues', fixtures.leagues),
     getTeams: supply('teams', fixtures.teams),
   };
@@ -98,23 +149,19 @@ const CAPABILITIES: SourceCapabilities = {
   // Riot supplies no streams at all. Settled; League.defaultStreamUrl is the answer.
   streamUrls: false,
   /**
-   * False, and this is about the adapter rather than the endpoint — and also about a gap in what
-   * has actually been probed, not only about what the adapter has chosen to skip.
+   * False, and as of Stage 0.7 this is a claim about the adapter's *shape*, not a gap in what has
+   * been probed.
    *
-   * `fetchMatches` sends no cursor and ignores its `window` argument entirely, so declaring `true`
-   * would be a lie the sync layer branches on: it would request a range and silently receive
-   * everything. That much is a settled fact about this code.
-   *
-   * What is NOT settled: `data.schedule.pages.{older,newer}` do carry non-null base64 cursors on
-   * an unparameterised `getSchedule` call (verified — see fixtures/riot-lol/rest_getSchedule.json)
-   * and are both null on the `leagueId`-scoped capture used for `rest_getSchedule_ewc.json`, which
-   * is consistent with that call returning a single page rather than with pagination working end
-   * to end. **The query parameter name to send a cursor back has never been recorded or probed
-   * anywhere in this repo** — an earlier draft of this comment said the cursors "actually work",
-   * which overstated a field being present and non-null into a claim about a request nobody has
-   * made. See docs/sources/lolesports-rest.md for the same correction. Historical backfill (SPEC:
-   * past schedule must be browsable) is the change that flips this flag, and the first step is
-   * probing that parameter name, not implementing against a guess.
+   * The cursor parameter is known and used: `pageToken`, base64, decoding to `newer::<snowflake>`
+   * or `older::<snowflake>` — verified 2026-08-12 by crawling forward to exhaustion (6 requests,
+   * 436 events, terminal `pages.newer === null`; see docs/sources/lolesports-rest.md and
+   * fixtures/riot-lol/rest_getSchedule_crawl_2026-08-12/). `fetchMatches` uses it, but to crawl
+   * the *whole* forward horizon, not to narrow to one — the opposite of what `timeWindow: true`
+   * would mean. The `window` argument is still ignored outright: a forward-only crawl can bound
+   * `toUtc` by stopping early, but never `fromUtc` (that needs an `older` crawl, unprobed — see
+   * the source note), so honouring half of every window handed to it would overstate the code
+   * exactly the way this flag exists to prevent. Flipping it needs a bounded-both-ends crawl, not
+   * merely a truncated forward one.
    */
   timeWindow: false,
 };
@@ -205,6 +252,122 @@ export const scheduleHasUpcoming: SourceCanary = {
 };
 
 /**
+ * Not a time bound — an event bound. 20 pages x 80 events = 1600, ~3.7x the 436 events measured
+ * crawling to exhaustion on 2026-08-12. Wide enough that a busier season does not trip it routinely
+ * — a cap that always fires trains the reader to ignore `crawl-incomplete`, the same "canary that
+ * cries wolf gets muted" failure `scheduleHasUpcoming` above is built around — tight enough that a
+ * runaway crawl costs 20 requests, not an unbounded number.
+ */
+export const MAX_SCHEDULE_PAGES = 20;
+
+type CrawlStopReason = 'exhausted' | 'no-pages-field' | 'repeated-token' | 'page-cap' | 'page-failed';
+
+interface CrawlOutcome {
+  pages: RawResponse[];
+  complete: boolean;
+  stopReason: CrawlStopReason;
+  detail: string;
+  requestCount: number;
+  bytes: number;
+}
+
+/** Read just enough of a page to keep crawling — full validation is parseSchedulePages' job, not
+ *  this loop's. A page shaped nothing like the envelope reads as `undefined` here and is treated
+ *  as `no-pages-field` below; it still gets to the caller and fails loudly in parseSchedulePages. */
+function extractPages(json: unknown): { older: string | null; newer: string | null } | undefined {
+  const pages = (json as { data?: { schedule?: { pages?: { older: string | null; newer: string | null } } } })
+    ?.data?.schedule?.pages;
+  return pages;
+}
+
+/**
+ * Follow `data.schedule.pages.newer` forward until it is null, `maxPages` is reached, or a token
+ * repeats. Sequential by construction — page *n+1*'s token comes from page *n* — so no concurrency
+ * guard is needed and none is added; 6-ish sequential requests is within the polite-polling budget
+ * this project already keeps for its capture tooling (scripts/capture-lib.ts).
+ *
+ * No added retry, no added sleep. `RiotRestClient.get` already retries 3x with backoff on 5xx/429
+ * (client.ts) — wrapping that here would turn one page's failure into 9 attempts instead of 3. A
+ * non-429 4xx still fails on the first attempt, unchanged.
+ *
+ * Nothing at all -> throw (page 1 failing leaves nothing to report, same rule fetchMatches already
+ * applies to its old single getSchedule call). Something, but less than usual -> return it and say
+ * so; page >= 2 failing still leaves the near-now slice every user-facing surface reads first, and
+ * NFR-4 (partial failure isolation) says that slice must not be thrown away to punish the far
+ * horizon.
+ */
+async function crawlSchedule(transport: RiotRestTransport, maxPages: number): Promise<CrawlOutcome> {
+  const pages: RawResponse[] = [];
+  const sentTokens = new Set<string>();
+  let token: string | undefined;
+  let requestCount = 0;
+  let bytes = 0;
+
+  for (let i = 0; i < maxPages; i++) {
+    let res: RawResponse;
+    try {
+      res = await transport.getSchedule(token);
+    } catch (err) {
+      if (pages.length === 0) throw err;
+      return {
+        pages,
+        complete: false,
+        stopReason: 'page-failed',
+        detail: `page ${String(pages.length + 1)} failed, keeping the ${String(pages.length)} already fetched: ${err instanceof Error ? err.message : String(err)}`,
+        requestCount,
+        bytes,
+      };
+    }
+    requestCount += 1;
+    bytes += res.bytes;
+    pages.push(res);
+
+    const pageFields = extractPages(res.json);
+    if (pageFields === undefined) {
+      return {
+        pages,
+        complete: true,
+        stopReason: 'no-pages-field',
+        detail: `page ${String(pages.length)} has no pages field; treating it as the only page`,
+        requestCount,
+        bytes,
+      };
+    }
+    if (pageFields.newer === null) {
+      return {
+        pages,
+        complete: true,
+        stopReason: 'exhausted',
+        detail: `terminated after ${String(pages.length)} page(s): pages.newer is null`,
+        requestCount,
+        bytes,
+      };
+    }
+    if (sentTokens.has(pageFields.newer)) {
+      return {
+        pages,
+        complete: false,
+        stopReason: 'repeated-token',
+        detail: `page ${String(pages.length)} repeated a token already sent; stopping to avoid an infinite crawl`,
+        requestCount,
+        bytes,
+      };
+    }
+    sentTokens.add(pageFields.newer);
+    token = pageFields.newer;
+  }
+
+  return {
+    pages,
+    complete: false,
+    stopReason: 'page-cap',
+    detail: `stopped at the ${String(maxPages)}-page cap without reaching pages.newer === null`,
+    requestCount,
+    bytes,
+  };
+}
+
+/**
  * The tier table is injected rather than read from disk here, for the same reason the transport
  * is: it keeps the adapter free of filesystem access and lets a test state its whole world in
  * three lines instead of maintaining a parallel config file.
@@ -233,11 +396,21 @@ export function createRiotRestLolAdapter(
       let requestCount = 0;
       let bytes = 0;
 
-      // Primary. If this fails there is nothing to report, so the error propagates: the sync
-      // layer isolates a failed source, an adapter does not fake success.
-      const schedule = await transport.getSchedule();
-      requestCount += 1;
-      bytes += schedule.bytes;
+      /**
+       * Primary. Crawls the whole forward horizon (Stage 0.7), not one page — see crawlSchedule.
+       * If page 1 fails there is nothing to report, so the error propagates: the sync layer
+       * isolates a failed source, an adapter does not fake success. `_window` is intentionally
+       * unused; see the `timeWindow` capability comment for why bounding it would be dishonest.
+       */
+      const crawl = await crawlSchedule(transport, MAX_SCHEDULE_PAGES);
+      requestCount += crawl.requestCount;
+      bytes += crawl.bytes;
+      if (!crawl.complete) {
+        warn.warn(
+          'crawl-incomplete',
+          `schedule crawl stopped early (${crawl.stopReason}): ${crawl.detail}; matches beyond the reached horizon are absent from this fetch and their absence must not be read as cancellation`,
+        );
+      }
 
       /**
        * Secondary. getSchedule's `league` object has a slug and a name but no id, so league
@@ -314,18 +487,34 @@ export function createRiotRestLolAdapter(
         }
       }
 
-      const parsed = parseSchedule(schedule.json, {
-        game: 'lol',
-        leagueConfig,
-        ...(leagueIdBySlug === undefined ? {} : { leagueIdBySlug }),
-        ...(teamIndex === undefined ? {} : { teamIndex }),
-      });
+      const parsed = parseSchedulePages(
+        crawl.pages.map((p) => p.json),
+        {
+          game: 'lol',
+          leagueConfig,
+          ...(leagueIdBySlug === undefined ? {} : { leagueIdBySlug }),
+          ...(teamIndex === undefined ? {} : { teamIndex }),
+        },
+      );
       warn.absorb(parsed.warnings);
+
+      const horizonUtc =
+        parsed.items.length === 0
+          ? null
+          : (parsed.items.map((m) => m.startsAtUtc).sort().at(-1) as string);
 
       return {
         items: parsed.items,
         warnings: warn.list(),
-        diagnostics: { requestCount, bytes, teamTableSize: teamIndex?.size ?? 0 },
+        diagnostics: {
+          requestCount,
+          bytes,
+          teamTableSize: teamIndex?.size ?? 0,
+          pagesFetched: crawl.pages.length,
+          crawlComplete: crawl.complete,
+          horizonUtc,
+          duplicateEventsDropped: parsed.duplicateEventsDropped,
+        },
       };
     },
 

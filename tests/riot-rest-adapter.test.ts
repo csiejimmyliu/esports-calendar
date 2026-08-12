@@ -3,19 +3,38 @@ import {
   createRiotRestLolAdapter,
   fixtureTransport,
   GLOBAL_SCOPE,
+  MAX_SCHEDULE_PAGES,
   regionalLeaguesPresent,
   scheduleHasUpcoming,
 } from '../src/sources/riot/rest/adapter.js';
 import type { RiotRestTransport } from '../src/sources/riot/rest/adapter.js';
-import { FIXTURE_CAPTURED_AT, loadFixture, realLeagueConfig } from './fixtures.js';
+import { FIXTURE_CAPTURED_AT, loadCrawlFixture, loadFixture, realLeagueConfig } from './fixtures.js';
 
 const schedule = loadFixture('riot-lol/rest_getSchedule.json');
 const leagues = loadFixture('riot-lol/rest_getLeagues.json');
 const teams = loadFixture('riot-lol/rest_getTeams.json');
+const crawlPages = loadCrawlFixture('riot-lol/rest_getSchedule_crawl_2026-08-12');
 const now = new Date(FIXTURE_CAPTURED_AT);
 
 function adapter(transport: RiotRestTransport = fixtureTransport({ schedule, leagues, teams })) {
   return createRiotRestLolAdapter(transport, realLeagueConfig());
+}
+
+/**
+ * Some tests below build a raw `RiotRestTransport` double directly rather than through
+ * `fixtureTransport`, to control getLeagues/getTeams independently of getSchedule. Their
+ * `getSchedule` used to ignore the pageToken argument and return `schedule` unconditionally —
+ * harmless before Stage 0.7, but `schedule`'s own `pages.newer` is genuinely non-null
+ * (rest_getSchedule.json was captured mid-crawl), so an unmodified double now looks like an
+ * infinite repeat of the same page to the crawl loop. This clone expresses what the double always
+ * meant — "this is the only page" — now that pagination exists to disagree with.
+ */
+function terminalSchedule(raw: unknown): unknown {
+  const doc = JSON.parse(JSON.stringify(raw)) as {
+    data: { schedule: { pages?: { newer: string | null } } };
+  };
+  if (doc.data.schedule.pages) doc.data.schedule.pages.newer = null;
+  return doc;
 }
 
 describe('capabilities are declared honestly', () => {
@@ -43,14 +62,13 @@ describe('capabilities are declared honestly', () => {
 
   it('does not claim a time window it does not honour', async () => {
     /**
-     * fetchMatches never sends a cursor, regardless of whether getSchedule's pagination could
-     * support one end to end (unresolved — see the `timeWindow` comment in adapter.ts). A `true`
-     * here would be a lie the sync layer branches on: it would ask for a range and silently
-     * receive everything.
+     * fetchMatches crawls the whole forward horizon (Stage 0.7) rather than narrowing to one —
+     * the opposite of what `timeWindow: true` would mean, and a `window` argument is still
+     * ignored outright. See the `timeWindow` comment in adapter.ts.
      *
      * The assertion is deliberately two-sided rather than `toBe(false)` — it pins the *agreement*
-     * between the flag and the behaviour, so implementing cursors and flipping the flag passes,
-     * while flipping the flag alone fails.
+     * between the flag and the behaviour, so implementing a bounded crawl and flipping the flag
+     * passes, while flipping the flag alone fails.
      */
     const narrow = { fromUtc: '2026-08-09T00:00:00Z', toUtc: '2026-08-09T23:59:59Z' };
     const windowed = await adapter().fetchMatches(GLOBAL_SCOPE, narrow);
@@ -80,7 +98,7 @@ describe('fetchMatches hides its multi-request shape but not its cost', () => {
   it('calls getTeams once per fetch, not once per match', async () => {
     let calls = 0;
     const counted: RiotRestTransport = {
-      getSchedule: () => Promise.resolve({ json: schedule, bytes: 0 }),
+      getSchedule: () => Promise.resolve({ json: terminalSchedule(schedule), bytes: 0 }),
       getLeagues: () => Promise.resolve({ json: leagues, bytes: 0 }),
       getTeams: () => {
         calls += 1;
@@ -94,7 +112,7 @@ describe('fetchMatches hides its multi-request shape but not its cost', () => {
 
   it('still returns every match when the secondary request fails, and says it degraded', async () => {
     const degraded: RiotRestTransport = {
-      getSchedule: () => Promise.resolve({ json: schedule, bytes: 0 }),
+      getSchedule: () => Promise.resolve({ json: terminalSchedule(schedule), bytes: 0 }),
       getLeagues: () => Promise.reject(new Error('503')),
       getTeams: () => Promise.resolve({ json: teams, bytes: 0 }),
     };
@@ -189,5 +207,124 @@ describe('canaries assert content, and survive an off-season', () => {
     it('fails on an empty parse', () => {
       expect(scheduleHasUpcoming.check([], now).ok).toBe(false);
     });
+  });
+});
+
+describe('fetchMatches crawls the schedule to exhaustion', () => {
+  function crawlAdapter(transport?: RiotRestTransport) {
+    return createRiotRestLolAdapter(
+      transport ?? fixtureTransport({ schedule: crawlPages, leagues, teams }),
+      realLeagueConfig(),
+    );
+  }
+
+  it('follows pages.newer until it is null', async () => {
+    const result = await crawlAdapter().fetchMatches(GLOBAL_SCOPE);
+    // 6 schedule pages + getLeagues + getTeams.
+    expect(result.diagnostics.requestCount).toBe(8);
+    expect(result.diagnostics.pagesFetched).toBe(6);
+    expect(result.diagnostics.crawlComplete).toBe(true);
+    expect(result.items).toHaveLength(436);
+    expect(result.warnings.map((w) => w.code)).not.toContain('crawl-incomplete');
+  });
+
+  it('returns the pages it got when a middle page fails, and says the horizon is short', async () => {
+    let call = 0;
+    const flaky: RiotRestTransport = {
+      getSchedule: () => {
+        call += 1;
+        if (call === 3) return Promise.reject(new Error('503 on page 3'));
+        return Promise.resolve({ json: crawlPages[call - 1], bytes: 0 });
+      },
+      getLeagues: () => Promise.resolve({ json: leagues, bytes: 0 }),
+      getTeams: () => Promise.resolve({ json: teams, bytes: 0 }),
+    };
+
+    const result = await crawlAdapter(flaky).fetchMatches(GLOBAL_SCOPE);
+
+    // Pages 1-2 succeeded (80 + 80 events); nothing is thrown away.
+    expect(result.items).toHaveLength(160);
+    expect(result.diagnostics.pagesFetched).toBe(2);
+    expect(result.diagnostics.crawlComplete).toBe(false);
+    expect(result.warnings.map((w) => w.code)).toContain('crawl-incomplete');
+
+    // horizonUtc is a fact about what actually came back, not an independently hardcoded date —
+    // it must be the latest start time among the matches the caller actually receives.
+    const latestReturned = [...result.items].map((m) => m.startsAtUtc).sort().at(-1);
+    expect(result.diagnostics.horizonUtc).toBe(latestReturned);
+  });
+
+  it('still throws when the first page fails', async () => {
+    const broken: RiotRestTransport = {
+      getSchedule: () => Promise.reject(new Error('upstream down')),
+      getLeagues: () => Promise.resolve({ json: leagues, bytes: 0 }),
+      getTeams: () => Promise.resolve({ json: teams, bytes: 0 }),
+    };
+    await expect(crawlAdapter(broken).fetchMatches(GLOBAL_SCOPE)).rejects.toThrow('upstream down');
+  });
+
+  it('stops and reports when a page repeats a token it has already sent', async () => {
+    // A schedule that always hands back the same "newer" token, however many times it is asked —
+    // the pathological case the repeated-token guard exists to bound.
+    const loopingPage = (): unknown => ({
+      data: {
+        schedule: {
+          pages: { older: null, newer: 'bmV3ZXI6OjE=' },
+          events: [],
+        },
+      },
+    });
+    const looping: RiotRestTransport = {
+      getSchedule: () => Promise.resolve({ json: loopingPage(), bytes: 0 }),
+      getLeagues: () => Promise.resolve({ json: leagues, bytes: 0 }),
+      getTeams: () => Promise.resolve({ json: teams, bytes: 0 }),
+    };
+
+    const result = await crawlAdapter(looping).fetchMatches(GLOBAL_SCOPE);
+
+    expect(result.diagnostics.crawlComplete).toBe(false);
+    // Page 1 establishes the token; page 2 repeats it and the crawl stops there.
+    expect(result.diagnostics.pagesFetched).toBe(2);
+    const warning = result.warnings.find((w) => w.code === 'crawl-incomplete');
+    expect(warning?.message).toContain('repeat');
+  });
+
+  it('stops and reports at the page cap rather than crawling forever', async () => {
+    // A schedule that always advances to a fresh, never-before-seen token — the guard that must
+    // catch this is the page cap, not the repeated-token check.
+    let n = 0;
+    const neverTerminating: RiotRestTransport = {
+      getSchedule: () => {
+        n += 1;
+        return Promise.resolve({
+          json: {
+            data: {
+              schedule: {
+                pages: { older: null, newer: `bmV3ZXI6OiR7bn0=${String(n)}` },
+                events: [],
+              },
+            },
+          },
+          bytes: 0,
+        });
+      },
+      getLeagues: () => Promise.resolve({ json: leagues, bytes: 0 }),
+      getTeams: () => Promise.resolve({ json: teams, bytes: 0 }),
+    };
+
+    const result = await crawlAdapter(neverTerminating).fetchMatches(GLOBAL_SCOPE);
+
+    expect(result.diagnostics.crawlComplete).toBe(false);
+    expect(result.diagnostics.pagesFetched).toBe(MAX_SCHEDULE_PAGES);
+    const warning = result.warnings.find((w) => w.code === 'crawl-incomplete');
+    expect(warning?.message).toContain('cap');
+  });
+
+  it('ignores the window argument entirely, and spends the same requests either way', async () => {
+    const narrow = { fromUtc: '2026-08-12T00:00:00Z', toUtc: '2026-08-12T23:59:59Z' };
+    const a = await crawlAdapter().fetchMatches(GLOBAL_SCOPE, narrow);
+    const b = await crawlAdapter().fetchMatches(GLOBAL_SCOPE);
+    expect(a.diagnostics.requestCount).toBe(b.diagnostics.requestCount);
+    expect(a.items.length).toBe(b.items.length);
   });
 });

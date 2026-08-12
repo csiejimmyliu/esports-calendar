@@ -225,16 +225,33 @@ function parseEvent(
   };
 }
 
-export function parseSchedule(raw: unknown, opts: ParseScheduleOptions): ParseOutput<SourceMatch> {
-  const warn = new WarningCollector();
+/**
+ * One page's events. No `suspect-empty` and no `no-team-identity` here — a page is not a fetch,
+ * and both of those are properties of the whole result a caller ends up with, not of one document
+ * in the middle of a Stage 0.7 crawl. `parseSchedule` and `parseSchedulePages` each evaluate them
+ * once, at their own scope.
+ */
+export function parseScheduleEvents(
+  raw: unknown,
+  opts: ParseScheduleOptions,
+  warn: WarningCollector,
+): SourceMatch[] {
   const envelope = GetScheduleResponse.parse(raw);
-  const events = envelope.data.schedule.events;
-
   const items: SourceMatch[] = [];
-  for (const event of events) {
+  for (const event of envelope.data.schedule.events) {
     const match = parseEvent(event, opts, warn);
     if (match) items.push(match);
   }
+  return items;
+}
+
+/**
+ * One document. Unchanged signature and behaviour from before Stage 0.7 — every existing caller
+ * (the golden-fixture parse tests, the team-identity tests) is unaffected by the crawl split.
+ */
+export function parseSchedule(raw: unknown, opts: ParseScheduleOptions): ParseOutput<SourceMatch> {
+  const warn = new WarningCollector();
+  const items = parseScheduleEvents(raw, opts, warn);
 
   if (items.length === 0) {
     warn.warn(
@@ -257,6 +274,58 @@ export function parseSchedule(raw: unknown, opts: ParseScheduleOptions): ParseOu
   }
 
   return { items, warnings: warn.list() };
+}
+
+export interface ParseSchedulePagesOutput extends ParseOutput<SourceMatch> {
+  /**
+   * A match seen on two pages, second occurrence dropped. Contiguous, non-overlapping pages make
+   * this zero in the common case (verified for the committed crawl corpus in
+   * tests/fixture-crawl.test.ts) — but a multi-second crawl reads a live, moving schedule, and a
+   * match rescheduled mid-crawl can legitimately land on two pages. That is a race, not an
+   * anomaly, so it is counted rather than warned about.
+   */
+  duplicateEventsDropped: number;
+}
+
+/**
+ * A whole forward crawl: many documents, deduped by `externalId` (first occurrence wins), with
+ * `suspect-empty` and `no-team-identity` evaluated once over the total rather than once per page —
+ * 5 empty pages and 1 full one is not an empty fetch.
+ */
+export function parseSchedulePages(
+  pages: readonly unknown[],
+  opts: ParseScheduleOptions,
+): ParseSchedulePagesOutput {
+  const warn = new WarningCollector();
+  const seen = new Set<string>();
+  const items: SourceMatch[] = [];
+  let duplicateEventsDropped = 0;
+
+  for (const page of pages) {
+    for (const match of parseScheduleEvents(page, opts, warn)) {
+      if (seen.has(match.externalId)) {
+        duplicateEventsDropped += 1;
+        continue;
+      }
+      seen.add(match.externalId);
+      items.push(match);
+    }
+  }
+
+  if (items.length === 0) {
+    warn.warn(
+      'suspect-empty',
+      'schedule crawl returned no usable matches across any page; the endpoint answered but the calendar would be empty',
+    );
+  }
+  if (opts.teamIndex === undefined) {
+    warn.warn(
+      'no-team-identity',
+      'no team master table available; getSchedule alone exposes no team ids, so nothing can be crosswalked',
+    );
+  }
+
+  return { items, warnings: warn.list(), duplicateEventsDropped };
 }
 
 export function parseLeagues(raw: unknown, game: GameSlug): ParseOutput<SourceLeague> {
