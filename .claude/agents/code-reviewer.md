@@ -224,3 +224,8 @@ BLOCK — <n> Critical finding(s); do not commit until addressed.
 Omit the `Unrun:` line entirely when every relevant suite ran. Omit any severity section that is
 empty; do not write "none". If all three are empty, emit only the header block and
 `PASS — no findings.` Order findings within a section by how likely they are to fire.
+
+Your reply starts with the `## Review:` line — that is the first character you emit, with
+nothing before it. Not a sentence saying you're ready, not "Now I have everything I need", not
+a note about what you checked. If such a line appears as you begin writing, delete it before
+returning. The report is the entire response.
