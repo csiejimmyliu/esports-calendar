@@ -13,6 +13,12 @@ Probed 2026-08-09 against `fixtures/riot-lol/rest_getSchedule.json` (80 events, 
 > leagues are covered was measured under the previous fourteen-league table and has been re-measured
 > under the current eight. Where a number appears below, it says which coverage it belongs to.
 
+**Stage 0.8, 2026-08-12: every parameter and boundary claim in this file has now been measured, not
+assumed.** `docs/sources/riot-rest-parameters.md` is the reference — a parameter table per endpoint,
+each cell citing the probe id that established it, plus a full probe log with a machine-readable
+twin at `docs/probes/riot-rest/*.probe.json`. This file stays the interpretive note; corrections below
+mark where a probe changed what was believed here.
+
 ## Endpoint
 
 - **Base**: `https://esports-api.lolesports.com/persisted/gw/`
@@ -55,7 +61,20 @@ Probed 2026-08-09 against `fixtures/riot-lol/rest_getSchedule.json` (80 events, 
   evidence so far. Past matches are in scope (SPEC §1), so historical backfill needs this direction,
   and nothing here establishes that it terminates at all, or in how many pages.
 - Endpoints: `getSchedule`, `getLeagues`, `getTournamentsForLeague`, `getTeams`,
-  `getEventDetails`, `getStandings`, `getLive`, `getCompletedEvents`
+  `getEventDetails`, `getStandings`, `getLive`, `getCompletedEvents`. **As of Stage 0.8, all eight
+  have been probed at least once — see `docs/sources/riot-rest-parameters.md`.** The four this
+  project never calls (`getTournamentsForLeague`, `getStandings`, `getLive`, `getCompletedEvents`)
+  all returned real data when probed: `getCompletedEvents` in particular returned 300 real historical
+  events for one league in one call, which bears directly on the still-open "past matches" product
+  question (SPEC §1 vs the owner's later comment that they are "no longer important" — unresolved,
+  see the Stage 0.8 plan's open items).
+- **Unrecognised query parameters are silently ignored, not rejected** — verified by sending
+  `getSchedule?...&thisParamDoesNotExist=1` and getting a byte-identical response to the
+  unparameterised anchor. This bounds every "endpoint X has no parameter Y" claim in this file: none
+  of them were established by "adding the parameter produced no visible error", because that method
+  cannot distinguish a nonexistent parameter from an ignored real one. Where a claim below says a
+  parameter narrows or changes a response, it was established by comparing against a same-run anchor,
+  not by the absence of an error. See `docs/sources/riot-rest-parameters.md`.
 
 ## Response shape
 
@@ -181,7 +200,11 @@ Absent from `getSchedule` entirely. Unresolved whether `getEventDetails` or `get
 - **Historical backfill is a separate, still-open question.** It needs the `older` direction, which
   a 6-page backward probe did not terminate (see Pagination above) — so unlike the forward
   direction, this is not yet "plausible with an unmeasured page count", it is unmeasured whether it
-  terminates at all.
+  terminates at all. A 3-page re-check on 2026-08-12 reconfirms only what it set out to: the pages are
+  contiguous and the direction works, and `pages.older` is still non-null at page 3 — the scope was
+  explicitly "does it work", not "how far", so this does not move the 6-page/480-event/`2026-07-19`
+  figure. *Basis: measured, this run, n=2 pages, probes `older-walk-2`/`older-walk-3` in
+  `docs/sources/riot-rest-parameters.md`.*
 - `record { wins, losses }` if standings are ever wanted (out of scope for v1).
 
 ## Scope filtering problem
@@ -263,10 +286,19 @@ VALORANT. Useful validation target for the Stage 0 interface.
 *Probed and captured 2026-08-09T15:10Z. `fixtures/riot-lol/rest_getTeams.json` + sidecar.*
 
 ```
-GET /persisted/gw/getTeams?hl=en-US        -- no other parameters; returns everything
+GET /persisted/gw/getTeams?hl=en-US
 data.teams[]  id, slug, name, code, image, alternativeImage, backgroundImage,
               status, homeLeague { name, region }, players[]
 ```
+
+> **Correction, 2026-08-12: "no other parameters" was never probed, and it is wrong.** This line
+> read "no other parameters; returns everything" — an assumption in the declarative voice, not a
+> measurement, and exactly the failure mode this file's own preamble apologises for twice elsewhere.
+> `getTeams?id=<teamId>` narrows cleanly to the single requested team (477 bytes / 1 row against the
+> 1540971-byte / 1568-row unparameterised anchor, same run). *Basis: measured, n=1, probe
+> `teams-id-filter` in `docs/sources/riot-rest-parameters.md`.* Unparameterised `getTeams` still
+> returns the whole table when `id` is omitted, and there is still no pagination (`data.pages` is
+> absent from the response entirely) — that much of the original claim holds.
 
 **1568 teams**, 1542967 bytes. `status`: 1176 `active`, 392 `archived`. No other status value appears
 — *exhaustive over this one capture*, which is why the parser warns on a third value rather than
@@ -342,6 +374,14 @@ mechanism.
 > *Confidence: exhaustive over the full 2026-08-09 capture for the collision counts (not reproducible
 > from the committed fixture); exhaustive over the committed fixture for the 60/60 name match and for
 > the seven academy pairs, both asserted as tests.*
+>
+> **Locale stability, strengthened 2026-08-12.** The 60/60 name match above was measured across two
+> fixtures captured **three days apart**, under different `hl` values (`rest_getSchedule.json` at
+> `hl=zh-TW`, `rest_getTeams.json` at `hl=en-US`). Stage 0.8 ran the same question same-instant, at
+> full scale: `getTeams` under `hl=zh-TW` compared against a same-run `hl=en-US` anchor, **all 1568
+> teams, zero name mismatches**. This was the single highest-stakes probe of that stage — a mismatch
+> would have invalidated the join key outright — and it confirmed rather than falsified the premise.
+> *Basis: measured, this run, n=1568, probe `teams-hl-zh-tw` in `docs/sources/riot-rest-parameters.md`.*
 >
 > **Two caveats, both measured.** Six active rows carry trailing whitespace in `name` (`"Suning "`,
 > `"TT willhaben "`, …), so the key is trimmed and lower-cased — which introduces zero additional
@@ -456,10 +496,19 @@ is removed from the committed fixture under the personal-data exception in `fixt
 
 **`getEventDetails?id=<matchId>`** — enrichment only. Returns team ids, `league.id`,
 `tournament.id`, and `games[].teams[].side` (blue/red). Does **not** return `startTime`, `state`,
-or `blockName`, so it cannot back a calendar on its own.
+or `blockName`, so it cannot back a calendar on its own. **Two boundary facts, added 2026-08-12:**
+a comma-joined `id` list is rejected outright (HTTP 400) — no batching, and it does not silently use
+only the first id, an assumption this file never actually tested before. An id that cannot exist
+returns **HTTP 200 with `data.event: null`** — not the `{"errors": [...]}` envelope `client.ts`
+checks for. Since nothing in `src/` calls this endpoint today it is not a live bug, but wiring it up
+later needs an explicit null check, not just the existing error-envelope guard. Also carries a
+`streams` key: empty for both probed matches so far (one unstarted, one completed — n=2, still zero
+evidence either way). *Basis: measured, this run, n=1 each, probes `event-details-two-ids`,
+`event-details-bogus`, `event-details-by-id` in `docs/sources/riot-rest-parameters.md`.*
 
-**`getLive`** — returned `{"events": []}` when probed; no matches were live at the time. This is
-an inconclusive result, not evidence that streams are absent. Re-probe during an actual broadcast.
+**`getLive`** — returned `{"events": []}` when probed on 2026-08-09, and again on 2026-08-12
+(probe `live`, n=2 now, both empty, both off-hours). Still inconclusive, not evidence that streams
+are absent. Re-probe during an actual broadcast.
 
 ## Open questions
 

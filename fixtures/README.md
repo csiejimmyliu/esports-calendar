@@ -260,9 +260,12 @@ unlabelled, they read like unfinished tasks. They are not:
   cross-league resolution path it was captured for. It is kept deliberately: the test on it now asserts
   the opposite behaviour — an uncovered league still yields matches and team names, just no resolved
   ids — which is the assertion that decides whether narrowing coverage is safe.
-- **The `older` (backward) pagination direction is unprobed.** Stage 0.7 resolved the `newer`
-  direction — `pageToken`, terminating at `pages.newer === null` — but a 6-page backward probe on
-  2026-08-12 did **not** terminate (480 events, back to 2026-07-19, `pages.older` still non-null).
-  Past matches are in scope (SPEC §1), so historical backfill needs this and nothing here
+- **The `older` (backward) pagination direction still doesn't terminate within the probed range.**
+  Stage 0.7 resolved the `newer` direction — `pageToken`, terminating at `pages.newer === null` —
+  but a 6-page backward probe on 2026-08-12 did **not** terminate (480 events, back to 2026-07-19,
+  `pages.older` still non-null). A Stage 0.8 re-check (owner: 3 pages, to confirm the direction works
+  and pages are contiguous, not to move this number) reconfirms both: contiguous, still non-null at
+  page 3. Past matches are in scope (SPEC §1), so historical backfill needs this and nothing here
   establishes that it terminates at all. See the Pagination section in
-  `docs/sources/lolesports-rest.md`.
+  `docs/sources/lolesports-rest.md` and `docs/sources/riot-rest-parameters.md`'s `event-details`
+  probe group.
