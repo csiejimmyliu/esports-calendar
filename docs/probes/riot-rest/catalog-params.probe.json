@@ -1,0 +1,101 @@
+{
+  "capturedAt": "2026-08-12T05:07:23.860Z",
+  "group": "catalog-params",
+  "probes": [
+    {
+      "id": "leagues-anchor",
+      "question": "Baseline getLeagues call: total count and byte size, for comparison against the id-filtered probe.",
+      "url": "https://esports-api.lolesports.com/persisted/gw/getLeagues?hl=en-US",
+      "requestHeaders": {
+        "x-api-key": "<redacted>",
+        "user-agent": "esports-calendar/0.1 (+https://github.com/csiejimmyliu/esports-calendar)",
+        "accept": "application/json"
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 10790,
+      "bodySummary": {
+        "count": 45,
+        "bytes": 10790
+      },
+      "verdict": "45 leagues, 10790 bytes",
+      "evidenceBasis": "measured, this run, n=1"
+    },
+    {
+      "id": "leagues-id-filter",
+      "question": "Does getLeagues accept an id filter and narrow its result, or ignore it and return everything?",
+      "url": "https://esports-api.lolesports.com/persisted/gw/getLeagues?hl=en-US&id=98767991310872058",
+      "requestHeaders": {
+        "x-api-key": "<redacted>",
+        "user-agent": "esports-calendar/0.1 (+https://github.com/csiejimmyliu/esports-calendar)",
+        "accept": "application/json"
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 232,
+      "bodySummary": {
+        "count": 1
+      },
+      "verdict": "id filter narrows to exactly the requested league",
+      "evidenceBasis": "measured, this run, n=1, compared against leagues-anchor in the same run"
+    },
+    {
+      "id": "teams-anchor",
+      "question": "Baseline getTeams call: row count and byte size, and whether a pages block exists at all.",
+      "url": "https://esports-api.lolesports.com/persisted/gw/getTeams?hl=en-US",
+      "requestHeaders": {
+        "x-api-key": "<redacted>",
+        "user-agent": "esports-calendar/0.1 (+https://github.com/csiejimmyliu/esports-calendar)",
+        "accept": "application/json"
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 1540971,
+      "bodySummary": {
+        "count": 1568,
+        "bytes": 1540971,
+        "hasPagesBlock": false
+      },
+      "verdict": "1568 teams, 1540971 bytes, pages block present=false",
+      "evidenceBasis": "measured, this run, n=1"
+    },
+    {
+      "id": "teams-id-filter",
+      "question": "lolesports-rest.md:266 claims getTeams takes \"no other parameters; returns everything\". Nothing has ever probed that. This either confirms or retires the claim.",
+      "url": "https://esports-api.lolesports.com/persisted/gw/getTeams?hl=en-US&id=103461966951059521",
+      "requestHeaders": {
+        "x-api-key": "<redacted>",
+        "user-agent": "esports-calendar/0.1 (+https://github.com/csiejimmyliu/esports-calendar)",
+        "accept": "application/json"
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 477,
+      "bodySummary": {
+        "count": 1
+      },
+      "verdict": "id filter narrows to exactly the requested team -- lolesports-rest.md:266 is WRONG, retire the claim",
+      "evidenceBasis": "measured, this run, n=1, compared against teams-anchor in the same run"
+    },
+    {
+      "id": "teams-hl-zh-tw",
+      "question": "The highest-value probe in this stage: does getTeams.name (the team-identity join key, CLAUDE.md \"Team identity is a narrowed join\") change under hl=zh-TW? The existing locale-stability evidence is two fixtures captured three days apart under different hl values. This is a same-instant A/B.",
+      "url": "https://esports-api.lolesports.com/persisted/gw/getTeams?hl=zh-TW",
+      "requestHeaders": {
+        "x-api-key": "<redacted>",
+        "user-agent": "esports-calendar/0.1 (+https://github.com/csiejimmyliu/esports-calendar)",
+        "accept": "application/json"
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 1538937,
+      "bodySummary": {
+        "compared": 1568,
+        "mismatched": 0,
+        "sampleMismatch": []
+      },
+      "verdict": "name is IDENTICAL under hl=zh-TW vs en-US for all 1568 compared teams -- CONFIRMS the locale-stability premise the name join relies on, same-instant this time",
+      "evidenceBasis": "measured, this run, n=1 per locale, compared same-instant against teams-anchor"
+    }
+  ]
+}

@@ -448,7 +448,16 @@ function errorsGroup(): ProbeDef[] {
       }),
       analyze: (r) => {
         const e = errorSummary(r.json);
-        return { bodySummary: e, verdict: `HTTP ${String(r.status)}, errors key present=${String(e.hasErrorsKey)}, messages=${JSON.stringify(e.messages)}` };
+        const f = r.status === 200 ? scheduleFields(r.json) : null;
+        return {
+          bodySummary: f ?? e,
+          verdict:
+            r.status !== 200
+              ? `HTTP ${String(r.status)} -- rejected, errors=${JSON.stringify(e.messages)}`
+              : `HTTP 200, ${String(f?.eventCount)} events, span ${String(f?.firstStart)}..${String(f?.lastStart)} -- ` +
+                'a malformed (non-base64) token is silently ignored, not rejected; the API falls back to the ' +
+                'default unparameterised first page rather than erroring',
+        };
       },
       evidenceBasis: 'measured, this run, n=1',
     },
@@ -569,8 +578,14 @@ function eventDetailsGroup(): ProbeDef[] {
         return { endpoint: 'getEventDetails', params: { hl: 'en-US', id } };
       },
       analyze: (r) => {
-        const event = (r.json as { data?: { event?: unknown } })?.data?.event;
-        return { bodySummary: { hasEvent: event !== undefined, keys: event !== undefined && typeof event === 'object' && event !== null ? Object.keys(event) : [] }, verdict: `HTTP ${String(r.status)}` };
+        const event = (r.json as { data?: { event?: { streams?: unknown[] } } })?.data?.event;
+        const keys = event !== undefined && typeof event === 'object' && event !== null ? Object.keys(event) : [];
+        return {
+          bodySummary: { hasEvent: event !== undefined, keys, streams: event?.streams },
+          verdict:
+            `HTTP ${String(r.status)}, keys=${keys.join(',')}` +
+            (event?.streams !== undefined ? `, streams=${JSON.stringify(event.streams)} (present as a key, empty for this match)` : ''),
+        };
       },
       evidenceBasis: 'measured, this run, n=1',
     },
@@ -586,13 +601,13 @@ function eventDetailsGroup(): ProbeDef[] {
       analyze: (r, ctx) => {
         const anchor = ctx.results.get('schedule-anchor');
         const ids = anchor ? scheduleFields(anchor.json).matchIds.slice(0, 2) : [];
-        const event = (r.json as { data?: { event?: { match?: { id?: string } } } })?.data?.event;
+        const e = errorSummary(r.json);
         return {
-          bodySummary: { requestedIds: ids, returnedMatchId: event?.match?.id },
+          bodySummary: { requestedIds: ids, ...e },
           verdict:
-            event?.match?.id === ids[0]
-              ? 'only the first id was honoured -- no batching'
-              : `HTTP ${String(r.status)}, returned match id=${String(event?.match?.id)} -- needs review`,
+            r.status === 200
+              ? `HTTP 200 -- see raw log for shape (unexpected: previous probes of this endpoint saw a 4xx for a comma-joined id)`
+              : `HTTP ${String(r.status)} -- a comma-joined id list is rejected outright, not partially honoured; no batching`,
         };
       },
       evidenceBasis: 'measured, this run, n=1',
@@ -602,8 +617,16 @@ function eventDetailsGroup(): ProbeDef[] {
       question: 'getEventDetails with an id that cannot exist: error shape for an unknown-but-well-formed id.',
       request: () => ({ endpoint: 'getEventDetails', params: { hl: 'en-US', id: '999999999999999999' } }),
       analyze: (r) => {
-        const e = errorSummary(r.json);
-        return { bodySummary: e, verdict: `HTTP ${String(r.status)}, errors=${JSON.stringify(e.messages)}` };
+        const event = (r.json as { data?: { event?: unknown } })?.data?.event;
+        const hasDataKey = (r.json as { data?: unknown })?.data !== undefined;
+        return {
+          bodySummary: { hasDataKey, event },
+          verdict:
+            r.status === 200 && hasDataKey && event === null
+              ? 'HTTP 200, data.event is null -- NOT the error-envelope shape client.ts checks for; a parser must ' +
+                'check for a null event explicitly, RiotErrorEnvelope would not catch this'
+              : `HTTP ${String(r.status)}, event=${JSON.stringify(event)}`,
+        };
       },
       evidenceBasis: 'measured, this run, n=1',
     },
