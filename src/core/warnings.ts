@@ -105,7 +105,21 @@ export type WarningCode =
    * team table, and shipping a quietly smaller table is exactly the silent narrowing this code
    * exists to prevent.
    */
-  | 'scope-list-stale';
+  | 'scope-list-stale'
+  /**
+   * A paginated fetch did not reach the end of the sequence. The rows returned are complete and
+   * correct; what is missing is *rows*, past a known horizon (`diagnostics.horizonUtc`).
+   *
+   * Distinct from `degraded-fetch`, and the distinction is the one `state-inferred` draws against
+   * `lossy-state`: `degraded-fetch` means an enrichment failed and every row is present, just
+   * missing a field. `crawl-incomplete` means rows are missing entirely, so absence past the
+   * horizon carries no information — it is not evidence a match was cancelled or never scheduled.
+   * A consumer that conflates the two will eventually delete real matches.
+   *
+   * Distinct from `suspect-empty`, which is "the endpoint answered and returned nothing". Here the
+   * endpoint answered and returned a lot — just not all of it.
+   */
+  | 'crawl-incomplete';
 
 export interface SourceWarning {
   code: WarningCode;

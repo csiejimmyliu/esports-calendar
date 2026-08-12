@@ -81,10 +81,16 @@ export interface SourceCapabilities {
    */
   streamUrls: boolean;
 
-  /** Supports narrowing by date range. Riot: true (cursors). BLAST: false (whole tournament). */
+  /**
+   * Supports narrowing by date range. Riot: false — `fetchMatches` crawls the whole forward
+   * horizon via `pageToken` (verified 2026-08-12: see docs/sources/lolesports-rest.md) rather than
+   * bounding it, so the flag describes "does not narrow", not "cannot". BLAST: false (whole
+   * tournament).
+   */
   timeWindow: boolean;
 
-  // historicalBackfill — deferred to Stage 1. Riot REST's cursors work; GraphQL's were null.
+  // historicalBackfill — deferred to Stage 1. Riot REST's `pageToken` crawls forward to exhaustion
+  // (Stage 0.7); the `older` direction is unprobed. GraphQL's cursors were null.
 }
 
 // ---------------------------------------------------------------------------
