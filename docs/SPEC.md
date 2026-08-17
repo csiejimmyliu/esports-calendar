@@ -257,6 +257,24 @@ Past matches are in scope (§1), so this is load-bearing rather than theoretical
 finished matches by default and must not reveal their results by default. Scores are stored; they are
 simply not rendered unless asked for.
 
+**Where it is enforced, decided 2026-08-17.** Not at the API boundary. `GET /v1/matches` — public,
+no token — carries `sides[].score` and `gamesPlayed` for every match, and there is no spoiler
+parameter. Masking is the client's obligation, keyed on `match.state`: `completed` and `inProgress`
+mask the score *and* `gamesPlayed` (which leaks a sweep on its own — `gamesPlayed: 2` of
+`seriesLength: 3`) until the user reveals.
+
+This is safe in the narrow sense that the *presence* of a score reveals nothing `state` does not
+already reveal — `result == null` determines state exactly, 7 of 7 unplayed and 0 of 73 played over
+the 2026-08-09 capture, encoded as a test. Only the value is a spoiler.
+
+It is nonetheless a **weaker construction than the player-data exclusion**, and the difference is
+worth being clear about. Player data is enforced at the boundary: `players` is undeclared in the
+`getTeams` zod schema, so it cannot reach a client whatever a client does. Spoilers are enforced by
+three clients agreeing to behave (web, ICS, iOS — NFR-1). The compensation is that revealing is
+instant with no second round trip, and that ICS's rule is absolute rather than conditional: its
+`SUMMARY` has no reveal mechanism, so it never carries a score at all. `docs/API.md` states the
+contract client authors have to implement.
+
 ### FR-4 Stream resolution
 
 First match wins:

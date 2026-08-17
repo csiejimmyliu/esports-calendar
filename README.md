@@ -25,11 +25,19 @@ identity via the `getTeams` master table (Stage 0–0.8).
 committed fixture; needs `RIOT_ESPORTS_API_KEY`, see `.env.example`). `npm run test:db` runs the
 DB-backed suite against the same instance — `npm run test` alone does not exercise it.
 
-**No web server, no web UI, no ICS, no notifications yet, no CI.** Stage 2 is next and is split into
-**2a** — calendar composition as a pure function, `follow`/`selection` persistence, and the anonymous
-identity row, with no HTTP and no new runtime dependency — and **2b**, the Express JSON API over it.
-Anonymous users are addressed by an opaque bearer token in `Authorization`, never by `app_user.id`
-and never by a cookie; SPEC §2 FR-1 records why and what risk that accepts.
+**Stage 2 complete**, split into 2a and 2b. 2a is calendar composition as a pure function
+(`src/core/calendar.ts`) plus `follow`/`selection` persistence and the anonymous identity row; 2b is
+the Express JSON API over it — see **`docs/API.md`**. Anonymous users are addressed by an opaque
+bearer token in `Authorization`, never by `app_user.id` and never by a cookie; SPEC §2 FR-1 records
+why and what risk that accepts.
+
+```bash
+DATABASE_URL=... npm run serve          # :3000, or set PORT
+curl -sX POST localhost:3000/v1/anon-users
+curl -s "localhost:3000/v1/matches?anchor=2026-08-12T00:00:00Z&limit=5"
+```
+
+**No web UI, no ICS, no notifications, no CI.** Stage 3 (the two web surfaces) is next.
 
 Scope was narrowed to LoL only on 2026-08-09; the requirements and stage plan were rewritten from the
 owner's own statement on 2026-08-11 (SPEC §0, §8). The cross-title interface design is kept and marked

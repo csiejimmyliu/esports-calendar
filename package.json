@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:db": "vitest run --config vitest.db.config.ts",
     "lint": "eslint .",
+    "serve": "tsx src/api/server.ts",
     "capture": "tsx scripts/capture-fixture.ts",
     "capture:check": "tsx scripts/capture-check.ts",
     "capture:refresh": "tsx scripts/capture-refresh.ts",
@@ -21,6 +22,7 @@
     "sync": "tsx src/cli/sync.ts"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^22.0.0",
     "@types/pg": "^8.21.0",
     "eslint": "^9.39.5",
@@ -30,6 +32,7 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
+    "express": "^5.2.1",
     "pg": "^8.23.0",
     "zod": "^3.23.0"
   }

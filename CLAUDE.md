@@ -151,9 +151,31 @@ requirements on 2026-08-11; everything older had been extrapolated by a model an
   would make a read-only leak into a write compromise. Not a cookie, either — a cookie is carried
   by the browser, and NFR-1 forbids logic a native client cannot reproduce. Decided 2026-08-17;
   SPEC §2 FR-1 records the accepted risk.
-- **Spoiler-free by default.** No score or winner in any default view, and never in ICS `SUMMARY`.
-  Past matches *are* shown — they are in scope — so this is load-bearing rather than theoretical:
-  scores are stored and simply not rendered unless asked for.
+- **Spoiler-free by default, and the client is where it is enforced.** No score or winner in any
+  default view. Past matches *are* shown — they are in scope — so this is load-bearing rather than
+  theoretical.
+
+  **The JSON API always carries `sides[].score` and `gamesPlayed`, including on the public
+  unauthenticated `GET /v1/matches`.** There is no spoiler parameter and no spoiler mode at the API
+  layer. Decided 2026-08-17, deliberately, and it is not an oversight — a reviewer read it as one,
+  which is why it is written here.
+
+  Why that is safe: the *presence* of a score tells a caller nothing `state` does not already tell
+  them. `result == null` determines state exactly — 7 of 7 unplayed, 0 of 73 played over the
+  2026-08-09 capture, encoded as a test. Only the *value* is a spoiler.
+
+  So the obligation is a **client contract**, keyed on `match.state`: when `state` is `completed` or
+  `inProgress`, mask `sides[].score` **and `gamesPlayed`** until the user reveals. `gamesPlayed` is
+  named explicitly because it leaks on its own — `gamesPlayed: 2` on a `seriesLength: 3` is a 2-0
+  sweep. Do not mask `state`, `seriesLength`, the teams, or the time; none of those is a spoiler.
+
+  **ICS `SUMMARY` is absolute and has no reveal mechanism.** Never a score, no exceptions. It is the
+  one surface with no interaction model, and it lands on a lock screen.
+
+  The trade-off, stated rather than implied: this guarantee now lives in three clients (web, ICS,
+  iOS) instead of one shared layer. That is the price of revealing on tap with no second round trip,
+  and it is a weaker construction than the player-data exclusion, which really is enforced at the
+  boundary by an undeclared zod field. `docs/API.md` carries the contract for client authors.
 
 ## Out of scope — do not build
 

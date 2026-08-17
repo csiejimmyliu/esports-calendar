@@ -8,7 +8,10 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    include: ['tests/db/**/*.test.ts'],
+    // tests/api/** belongs here rather than in `npm run test`: it drives a real Express app over a
+    // real socket against a real Postgres, so it has the same "fail loudly without DATABASE_URL"
+    // contract as tests/db/**.
+    include: ['tests/db/**/*.test.ts', 'tests/api/**/*.test.ts'],
     fileParallelism: false,
   },
 });
