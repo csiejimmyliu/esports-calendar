@@ -27,7 +27,7 @@ export async function setupTestDb(): Promise<Pool> {
 export async function truncateAll(pool: Pool): Promise<void> {
   await pool.query(`
     TRUNCATE TABLE
-      selection, follow, stream_pref, notification_rule, device, ics_token,
+      selection, follow, stream_pref, notification_rule, device, ics_token, user_token,
       external_ref, stream, match_team, match, tournament, team, league,
       canary_result, sync_run, source_health, source, game, app_user
     RESTART IDENTITY CASCADE

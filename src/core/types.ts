@@ -228,6 +228,34 @@ export interface SourceTournament {
 }
 
 // ---------------------------------------------------------------------------
+// User state
+// ---------------------------------------------------------------------------
+
+/**
+ * A standing rule: "matches of this league / this team belong on my calendar."
+ *
+ * Deliberately not called a subscription. SPEC §5: the earlier name carried the implication that
+ * the calendar is derivable from follows alone, and FR-1 is precisely the requirement that it is
+ * not — a followed league's matches can still be dropped one at a time.
+ */
+export interface Follow {
+  targetType: 'league' | 'team';
+  /** Our canonical league or team id, never a source id and never a slug. */
+  targetId: string;
+}
+
+/**
+ * One row per (user, match), carrying a state — not two tables.
+ *
+ * SPEC §2 FR-1 rule 2: two tables would permit a contradictory pair (the same match both picked
+ * and dropped). The database enforces the same thing with `PRIMARY KEY (user_id, match_id)`.
+ */
+export interface Selection {
+  matchId: string;
+  state: 'included' | 'excluded';
+}
+
+// ---------------------------------------------------------------------------
 // Identity
 // ---------------------------------------------------------------------------
 
