@@ -176,13 +176,68 @@ The rules that are not obvious, each of which needs a named test:
    match with undecided sides; when Riot fills the side in, the match becomes derived and appears.
    No user action, no backfill job.
 
-Anonymous users hold both tables against a device-scoped identity. Signing in migrates follows *and*
-selections into the account without duplicating them.
+#### Anonymous identity — the mechanism, decided 2026-08-17
+
+An anonymous user **is** a row in `app_user` with `email IS NULL`. There is no parallel guest table
+and no second code path: `follow` and `selection` reference that row by foreign key exactly as they
+would for a signed-in user, so signing in (stage 4) is a column write or a row merge, never a data
+migration out of some other store.
+
+A request identifies itself with an **opaque bearer token** in `Authorization: Bearer <token>`,
+issued when the client first needs to write. NFR-6 forbids server-side session state, so the token
+is a row (`user_token`, §5), not a process-memory map.
+
+Three things this fixes deliberately:
+
+1. **The token is not `app_user.id`.** The id appears in logs, error messages and future shareable
+   links; a value that is simultaneously an identifier and a credential is compromised the first
+   time it is logged. This is the same rule FR-5 already states for ICS — *"an unguessable token
+   (not the user id)"* — applied one layer earlier.
+2. **The identity token and the ICS token are separate values with different powers.** The ICS
+   token travels in a URL, is stored in plaintext by Google Calendar, and grants read only. The
+   identity token grants full write. Neither may be used as the other. `ics_token` and `user_token`
+   are therefore separate tables.
+3. **Not a cookie.** A cookie is a browser mechanism carried by the browser; NFR-1 forbids web-only
+   logic, and stage 7 (native iOS) is its exam. A bearer header is the same handful of lines in
+   TypeScript and in Swift. The cost is that the web client (stage 3) stores and attaches the token
+   itself instead of getting it for free.
+
+**The accepted risk, stated plainly.** This is a bearer credential with no password, no second
+factor and no recovery path — there is no email to send one to. Whoever holds the token is that
+user. What it protects is which leagues a browser follows and which matches it picked; the project
+collects no personal data (§1) and an anonymous row has no email. The one property that must hold
+is unguessability: the token is 32 bytes of cryptographic randomness, never a counter or a
+timestamp. Real account security arrives with Google OAuth in stage 4, which is where a recovery
+path becomes possible at all.
+
+**What stage 4 then does.** If the Google account has no `app_user` yet, fill in `email` on the
+existing anonymous row — zero rows of `follow` or `selection` move. If it already has one (the user
+signed in on another device), the two rows merge: `follow` de-duplicates on its own primary key
+`(user_id, target_type, target_id)`, and `selection` needs a stated conflict rule on
+`(user_id, match_id)`. Migrating follows *and* selections without duplicating or clobbering is the
+hard half of stage 4, not the OAuth handshake.
 
 ### FR-2 Two surfaces, and filtering is not following
 
 **Overview.** Every covered match, past and future. Filterable by league and by team. This is where
 the user follows a league, follows a team, or picks a single match.
+
+**Its default range is in-progress and future**, ordered by `starts_at_utc`, decided 2026-08-17.
+Past matches are reached by paging backwards — scrolling up loads older matches — and what that
+serves is **what is already in the database**. The product never fetches history upstream. So "past
+and future" above describes what the surface can display, not a backfill obligation: the past it
+has is the accumulated residue of every sync run, which grows forward from whenever ingestion
+started rather than reaching back to 2011.
+
+Two things follow, and both are load-bearing:
+
+- Stage 0.7 left the backward (`older`) direction of Riot's schedule crawl unresolved — a 6-page
+  backward crawl did not terminate. **That is not a blocker for this surface**, because this
+  surface never asks for it. It stays open only for a hypothetical future backfill.
+- The overview's range is a *query* concern, and it sits in tension with §6's "one global snapshot,
+  cached hard". The tension is recorded, not resolved: stage 8 measures the snapshot before stage 9
+  caches it, and shaping the query now for an unmeasured cache would be exactly the mistake §7's
+  "measure first" column exists to prevent.
 
 **Calendar.** Only `calendar(user)` from FR-1. Agenda (chronological, default), week, month. "Today"
 reachable in one interaction.
@@ -430,6 +485,7 @@ selection(user_id, match_id, state ENUM(included, excluded), updated_at)
 stream_pref(user_id, scope ENUM(global, league, team), scope_id NULL, provider, channel, locale)
 notification_rule(user_id, lead_minutes, enabled)
 device(id, user_id, platform ENUM(web, ios), push_token)
+user_token(token, user_id, created_at)
 ics_token(user_id, token, created_at)
 sync_run(id, source_id, started_at, finished_at, item_count, status)
 ```
@@ -508,6 +564,14 @@ that actually works lives in `config/leagues.json`. They are different things an
 The config file is where a *coverage* decision goes, which is why the `EG` disambiguation lives there.
 The column is what protects a hand-fixed identity from an hourly job, and renames and merges are normal
 enough that a crosswalk with no manual escape hatch is a gap. Neither replaces the other.
+
+**`user_token` is a table, not a column on `app_user`.** It carries the anonymous bearer credential
+from FR-1. A table because one user may legitimately hold more than one live token — a second
+device, or a rotation — and each of those is then an insert rather than a schema change. It also
+keeps the credential physically separate from the row that `SELECT * FROM app_user` returns.
+`ics_token` already established this shape and is kept distinct from it: different power (read-only
+vs full write) and different exposure (travels in a URL vs travels in a header), so sharing one
+table would mean one leak grants both.
 
 **`source_health` is how NFR-5 is met.** Freshness has to be a queryable row, not a log line.
 
@@ -690,7 +754,8 @@ One stage at a time. Do not start the next unprompted.
 | **0.8** ✅ | API boundary survey: every Riot REST endpoint this project touches or has considered touching, probed live and logged, plus a wire-to-domain map. `npm run probe -- <group>` (`scripts/probe-api.ts`), five groups, 26 live requests, logs committed at `docs/probes/riot-rest/*.probe.json`. | `docs/sources/riot-rest-parameters.md` — every parameter/boundary claim cites the probe id that measured it. Retired an unprobed claim (`getTeams` "no other parameters" — `id` narrows cleanly) and strengthened the name-join's locale-stability premise from two fixtures three days apart to a same-instant, exhaustive A/B (1568/1568 teams, zero mismatches — the stage's one stop-and-report trigger, which did not fire). `docs/DATA_FLOW.md` maps every `SourceMatch`/`SourceTeam`/`SourceLeague` field to its wire origin, with diagrams for the lifecycle, the three-endpoint join, and where each `WarningCode` fires. No `src/` behaviour changed. |
 | **1a** ✅ | Schema, source registry, identity crosswalk, idempotent sync. | Sync twice → zero duplicates, and a genuinely unchanged row's `updated_at` does not move either. TBD matches persist. NFR-8 (a user's `selection`/`follow` row is never touched by sync) has a DB-backed test. |
 | **1b** ✅ | Source health + canary scheduling, and the degradation semantics 1a's "done when" didn't cover: what sync does when the upstream is half-broken rather than fully up or fully down. | A deliberately broken source (a scope that throws, a `fetchLeagues` outage) does not fail the run — the healthy part still commits, the broken part is recorded and skipped. A transient `getTeams` outage does not erase a previously resolved team id or bump every match's revision. A parse-level drop is never read as a cancellation. A canary catches an empty parse **and stays quiet through an off-season**, and its verdict is recorded (`canary_result`), not just logged. `source_health`/`sync_run` are written on every run, including a failed one. |
-| **2** | `follow` + `selection` + JSON read/write API. Two endpoint groups: overview and my-calendar. | The FR-1 rules are a pure function with table-driven tests, covering at minimum: exclude one match of a followed team; unfollow keeps hand-picked matches; a reschedule carries the selection; a TBD side resolving pulls the match in. NFR-8 has a test. |
+| **2a** | Calendar composition + `follow`/`selection` persistence + the anonymous identity row. No HTTP, no new runtime dependency. | The FR-1 rules are a pure function with table-driven tests, covering at minimum: exclude one match of a followed team; unfollow keeps hand-picked matches; a reschedule carries the selection; a TBD side resolving pulls the match in. NFR-8 has a test. Follow and selection writes are idempotent. The overview read query pages backwards by a keyset cursor and is stable across a concurrent insert. |
+| **2b** | The JSON read/write API over 2a. Express. Two endpoint groups: overview and my-calendar, plus token issue and the `Authorization: Bearer` middleware. | Every 2a capability is reachable over JSON with no web-only assumption (NFR-1). Applying a filter issues no write (FR-2). A request with no token, a malformed token, or an unknown token is rejected without leaking whether the token existed. |
 | **3** | Web: overview page (filter / follow / pick) + calendar page. Anonymous, no account. | Full flow works with no account. Applying a filter issues no write (FR-2). Spoiler-free is built in, not retrofitted. Past matches browsable without revealing scores. |
 | **4** | Google OAuth + anonymous data migration. | Follow and pick anonymously → sign in → both tables intact, not duplicated. |
 | **5** | ICS export. | Subscribed in real Google Calendar; changing a match time **updates** the existing event rather than duplicating it. `DTEND` is the §1 estimate and is documented as such. |
@@ -702,6 +767,21 @@ One stage at a time. Do not start the next unprompted.
 | **11** | *(deferred)* a second title. | Only reached once the LoL calendar is complete. Follow, calendar, ICS and notification logic work with no changes to core logic; only a new adapter is added. |
 
 ### Why this order, where it changed, and what it costs
+
+**Stage 2 split into 2a and 2b, 2026-08-17.** The acceptance criterion written for stage 2 named no
+endpoint: it asked for the FR-1 rules as a pure function with table-driven tests, plus an NFR-8
+test. All of that is satisfiable with no server. So 2a is the part the criterion actually measures
+and 2b is the part that connects it to a network — the same shape as the 1a/1b split, where 1b's
+degradation work found three failure modes 1a's happy path had missed.
+
+It also isolates the project's **first runtime HTTP dependency** into its own reviewable stage.
+Until 2b, `package.json` has `pg` and `zod` and nothing else at runtime. Express was confirmed over
+`node:http` on 2026-08-17: neither existing dependency can route or read a request body, and
+hand-rolling a router is precisely the kind of solved problem the working rules say not to reinvent.
+
+The cost of splitting is real and is accepted: 2a ends with no end-to-end path a human can exercise
+through a browser, which is a deviation from "get a minimal end-to-end version running first". The
+CLI (`src/cli/next-matches.ts`) is the stand-in until 2b lands.
 
 **iOS moved up, from 9 to 7.** It is the delivery the owner most wants, and it was scheduled behind
 the entire scaling track — that is, behind optimising for users who do not exist yet. It cannot be
@@ -760,6 +840,21 @@ matters,
 the way to get real numbers is to measure actual broadcast lengths, which requires data this project
 deliberately does not collect. A defensible alternative: no `DTEND` at all, and all-day or
 point-in-time events. Not decided.
+
+**The backward (`older`) schedule crawl, and why it stopped being urgent.** Stage 0.7 resolved the
+forward direction and left the backward one open: a 6-page backward crawl did not terminate, and
+the note in `docs/sources/lolesports-rest.md` still stands. It was carried as a prerequisite for
+historical backfill. The overview range decision of 2026-08-17 (FR-2) removes that pressure — the
+past the overview shows is the residue of past sync runs, not a backfill — so this is now an open
+question with **no stage depending on it**. It becomes urgent again only if the product ever
+promises history it did not accumulate itself.
+
+**`selection` conflict rule on account merge, unresolved.** FR-1 states what stage 4 must do when
+one Google account already has an `app_user` and the anonymous row also holds selections: the two
+sets merge on `(user_id, match_id)`. Which state wins when the same match is `included` on one row
+and `excluded` on the other is not decided. Both are explicit user statements, and `updated_at`
+exists on the table, so most-recent-wins is available and is probably right — but it is a product
+decision about whose intent counts, and it is stage 4's to settle, not stage 2a's.
 
 **Hosting.** PaaS target undecided (Fly.io / Render / Railway). Deferred until stage 3 needs it.
 

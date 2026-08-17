@@ -142,6 +142,15 @@ requirements on 2026-08-11; everything older had been extrapolated by a model an
   labelled as an estimate; persisting a fabricated `ends_at_utc` would launder a guess into the data
   model where the next reader cannot tell it from a measurement. See SPEC §1.
 - **Stateless web tier.** No session or user state in process memory.
+- **A credential is never a primary key, and the two tokens are not interchangeable.** An anonymous
+  user is an `app_user` row with `email IS NULL`, addressed by an opaque bearer token in
+  `Authorization: Bearer` — never by `app_user.id`, which is free to appear in logs, errors and
+  links precisely because it grants nothing. Two token tables exist and must stay separate:
+  `user_token` grants full write and travels in a header; `ics_token` (FR-5) grants read only and
+  travels inside a URL that Google Calendar stores in plaintext. Sharing one value between them
+  would make a read-only leak into a write compromise. Not a cookie, either — a cookie is carried
+  by the browser, and NFR-1 forbids logic a native client cannot reproduce. Decided 2026-08-17;
+  SPEC §2 FR-1 records the accepted risk.
 - **Spoiler-free by default.** No score or winner in any default view, and never in ICS `SUMMARY`.
   Past matches *are* shown — they are in scope — so this is load-bearing rather than theoretical:
   scores are stored and simply not rendered unless asked for.

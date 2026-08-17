@@ -91,7 +91,8 @@ the source is a bad fit, not a reason to put an agent in the sync path.
 
 ## Stage-specific notes
 
-Numbered against the current SPEC §8. Stages 0, 0.5, 0.6, 0.7, 0.8, 1a, and 1b are done.
+Numbered against the current SPEC §8. Stages 0, 0.5, 0.6, 0.7, 0.8, 1a, and 1b are done. Stage 2 is
+split into 2a and 2b — see SPEC §8 for why.
 
 **Stage 0.8 — API boundary survey.** Also discovered mid-session rather than planned: a Stage 1
 alignment check surfaced that no parameter or boundary claim about the Riot REST API had actually
@@ -133,11 +134,25 @@ canary work itself is scheduling, not invention — the assertions already exist
 `riot-rest-lol`'s two canaries) and are unit tested; 1b's job is running them per scope and persisting
 the verdict, not rewriting them.
 
-**Stage 2 — follow and selection.** The cases to call out are the override rules in SPEC §2 FR-1, not
-de-duplication. De-duplication is the easy half and a model will get it; what it will miss is that
-unfollowing must not delete hand-picked matches, and that an `excluded` row survives both the match
-finishing and the follow being removed. Ask for the whole thing as a pure function with a table-driven
-test, and ask for NFR-8 as a test too.
+**Stage 2a — calendar composition and persistence.** The cases to call out are the override rules in
+SPEC §2 FR-1, not de-duplication. De-duplication is the easy half and a model will get it; what it
+will miss is that unfollowing must not delete hand-picked matches, and that an `excluded` row
+survives both the match finishing and the follow being removed. Ask for the whole thing as a pure
+function with a table-driven test, and ask for NFR-8 as a test too.
+
+Two shapes to insist on, because both are cheap now and expensive later. The composition function
+takes `(follows, selections, matches)` and touches no database and no clock — same discipline as
+`src/sync/diff.ts`, and the reason the table-driven test is possible at all. And the overview read
+pages by a **keyset cursor** on `(starts_at_utc, id)`, not by `OFFSET`: sync inserts rows underneath
+a user who is scrolling, and `OFFSET` silently skips or repeats when that happens. A model reaches
+for `OFFSET` by default.
+
+**Stage 2b — the API, and the first HTTP dependency.** Split out from 2a so the dependency lands in
+its own reviewable diff. Express, decided 2026-08-17 over `node:http`. The identity mechanism is
+settled — bearer token, `user_token` table, never `app_user.id`, never a cookie (CLAUDE.md's
+non-negotiable list, SPEC §2 FR-1) — so this stage implements it rather than choosing it. The
+acceptance criterion a model will skip is the negative one: **applying a filter must issue no write**
+(FR-2). Ask for that as a test that asserts on the database, not on the response.
 
 **Stage 3 — the two surfaces.** Agenda view alone first, then grid views; grid calendars eat entire
 sessions if you let them go first. Two things must be right from the start rather than retrofitted:
